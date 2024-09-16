@@ -17,5 +17,5 @@ Jon Dufresne <https://github.com/jdufresne>
 Anès Foufa <https://github.com/AnesFoufa>
 Segyo Myung <https://github.com/myungsegyo>
 
-translate to valkey API:
+django-valkey:
 Amirreza Sohrabi far <https://github.com/amirreza8002>
