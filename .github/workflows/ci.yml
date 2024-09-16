@@ -91,6 +91,7 @@ jobs:
           poetry run pytest tests/*.py --ds=tests.settings.sqlite_gzip
           poetry run pytest tests/*.py --ds=tests.settings.sqlite_bz2
           poetry run pytest tests/tests_async/*.py --ds=tests.settings.sqlite_async
+          poetry run pytest tests/tests_async/*.py --ds=tests.settings.sqlite_async_herd
 
         env:
           DJANGO: ${{ matrix.django-version }}
