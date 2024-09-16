@@ -12,8 +12,11 @@ if you need those middlewares, consider using a sync client or implement a new m
 Clients
 #######
 
-as of now, we only have one async client, ``AsyncDefaultClient``, available in ``django_valkey.async_cache.client.default``.
+as of now, we have two async client, ``AsyncDefaultClient``, available in ``django_valkey.async_cache.client.default``, and ``AsyncHerdClient`` available in ``django_valkey.async_cache.client.herd``.
 the default client can also be used with sentinels, as we'll discuss later.
+
+AsyncDefaultClient
+^^^^^^^^^^^^^^^^^^
 
 the ``AsyncDefaultClient`` is configured by default by ``AsyncValkeyCache``, so if you have configured that as your backend you are all set, but if you want to be explicit or use the client with a different backend you can write it like this:
 
@@ -24,7 +27,7 @@ the ``AsyncDefaultClient`` is configured by default by ``AsyncValkeyCache``, so 
             "BACKEND": "path.to.backend",
             "LOCATION": [
                 "valkey://user:pass@127.0.0.1:6379",
-                ]
+                ],
             "OPTIONS": {
                 "CLIENT_CLASS": "django_valkey.async_cache.client.AsyncDefaultClient",
                 }
@@ -32,6 +35,29 @@ the ``AsyncDefaultClient`` is configured by default by ``AsyncValkeyCache``, so 
         }
 
 or you can replace the client with your own like that.
+
+AsyncHerdClient
+^^^^^^^^^^^^^^^
+
+to use ``AsyncHerdClient`` you can configure it like this:
+
+.. code-block:: python
+
+    CACHES = {
+        "default": {
+            "BACKEND": "django_valkey.async_cache.cache.AsyncValkeyCache",
+            "LOCATION": [
+                "valkey://127.0.0.1:6379",
+                ],
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_valkey.async_cache.client.AsyncHerdClient",
+                },
+            }
+        }
+
+    CACHE_HERD_TIMEOUT = 60  # the default is 60
+
+and you're all set
 
 Connection Factory
 ##################
