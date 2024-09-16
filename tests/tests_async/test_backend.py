@@ -15,6 +15,7 @@ from pytest_django.fixtures import SettingsWrapper
 from pytest_mock import MockerFixture
 
 from django_valkey.async_cache.cache import AsyncValkeyCache
+from django_valkey.async_cache.client.herd import AsyncHerdClient
 from django_valkey.serializers.json import JSONSerializer
 from django_valkey.serializers.msgpack import MSGPackSerializer
 
@@ -230,25 +231,25 @@ class TestAsyncDjangoValkeyCache:
         mocked_set = mocker.patch.object(pipeline, "set", AsyncMock())
         await cache.aset(key, value, client=pipeline)
 
-        # if isinstance(cache.client, AsyncHerdClient):
-        #     default_timeout = cache.client._backend.default_timeout
-        #     herd_timeout = (default_timeout + settings.CACHE_HERD_TIMEOUT) * 1000
-        #     herd_pack_value = await cache.client._pack(value, default_timeout)
-        #     mocked_set.assert_called_once_with(
-        #         await cache.client.make_key(key, version=None),
-        #         await cache.client.encode(herd_pack_value),
-        #         nx=False,
-        #         px=herd_timeout,
-        #         xx=False,
-        #     )
-        # else:
-        mocked_set.assert_called_once_with(
-            await cache.client.make_key(key, version=None),
-            await cache.client.encode(value),
-            nx=False,
-            px=cache.client._backend.default_timeout * 1000,
-            xx=False,
-        )
+        if isinstance(cache.client, AsyncHerdClient):
+            default_timeout = cache.client._backend.default_timeout
+            herd_timeout = (default_timeout + settings.CACHE_HERD_TIMEOUT) * 1000
+            herd_pack_value = await cache.client._pack(value, default_timeout)
+            mocked_set.assert_called_once_with(
+                await cache.client.make_key(key, version=None),
+                await cache.client.encode(herd_pack_value),
+                nx=False,
+                px=herd_timeout,
+                xx=False,
+            )
+        else:
+            mocked_set.assert_called_once_with(
+                await cache.client.make_key(key, version=None),
+                await cache.client.encode(value),
+                nx=False,
+                px=cache.client._backend.default_timeout * 1000,
+                xx=False,
+            )
 
     async def test_delete(self, cache: AsyncValkeyCache):
         await cache.aset_many({"a": 1, "b": 2, "c": 3})
@@ -297,8 +298,8 @@ class TestAsyncDjangoValkeyCache:
         assert res == 0
 
     async def test_incr(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, AsyncHerdClient):
-        #     pytest.skip("HerdClient doesn't support incr")
+        if isinstance(cache.client, AsyncHerdClient):
+            pytest.skip("HerdClient doesn't support incr")
 
         await cache.aset("num", 1)
 
@@ -328,8 +329,8 @@ class TestAsyncDjangoValkeyCache:
         assert res == 5
 
     async def test_incr_no_timeout(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, AsyncHerdClient):
-        #     pytest.skip("HerdClient doesn't support incr")
+        if isinstance(cache.client, AsyncHerdClient):
+            pytest.skip("HerdClient doesn't support incr")
 
         await cache.aset("num", 1, timeout=None)
 
@@ -359,8 +360,8 @@ class TestAsyncDjangoValkeyCache:
         assert res == 5
 
     async def test_incr_error(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, AsyncHerdClient):
-        #     pytest.skip("HerdClient doesn't support incr")
+        if isinstance(cache.client, AsyncHerdClient):
+            pytest.skip("HerdClient doesn't support incr")
 
         with pytest.raises(ValueError):
             # key does not exist
@@ -369,8 +370,8 @@ class TestAsyncDjangoValkeyCache:
     async def test_incr_ignore_check(self, cache: AsyncValkeyCache):
         # if isinstance(cache.client, ShardClient):
         #     pytest.skip("ShardClient doesn't support argument ignore_key_check to incr")
-        # if isinstance(cache.client, AsyncHerdClient):
-        #     pytest.skip("HerdClient doesn't support incr")
+        if isinstance(cache.client, AsyncHerdClient):
+            pytest.skip("HerdClient doesn't support incr")
 
         # key exists check will be skipped and the value will be incremented by
         # '1' which is the default delta
@@ -417,8 +418,8 @@ class TestAsyncDjangoValkeyCache:
         assert res is False
 
     async def test_decr(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, AsyncHerdClient):
-        #     pytest.skip("HerdClient doesn't support decr")
+        if isinstance(cache.client, AsyncHerdClient):
+            pytest.skip("HerdClient doesn't support decr")
 
         await cache.aset("num", 20)
 
@@ -541,10 +542,10 @@ class TestAsyncDjangoValkeyCache:
         await cache.aset("foo", "bar", 10)
         ttl = await cache.attl("foo")
 
-        # if isinstance(cache.client, AsyncHerdClient):
-        #     assert pytest.approx(ttl) == 12
-        # else:
-        assert pytest.approx(ttl) == 10
+        if isinstance(cache.client, AsyncHerdClient):
+            assert pytest.approx(ttl) == 12
+        else:
+            assert pytest.approx(ttl) == 10
 
         # Test ttl None
         await cache.aset("foo", "foo", timeout=None)
@@ -566,19 +567,19 @@ class TestAsyncDjangoValkeyCache:
         ttl = await cache.apttl("foo")
 
         # delta is set to 10 as precision error causes tests to fail
-        # if isinstance(cache.client, AsyncHerdClient):
-        #     assert pytest.approx(ttl, 10) == 12000
-        # else:
-        assert pytest.approx(ttl, 10) == 10000
+        if isinstance(cache.client, AsyncHerdClient):
+            assert pytest.approx(ttl, 10) == 12000
+        else:
+            assert pytest.approx(ttl, 10) == 10000
 
         # Test pttl with float value
         await cache.aset("foo", "bar", 5.5)
         ttl = await cache.apttl("foo")
 
-        # if isinstance(cache.client, AsyncHerdClient):
-        #     assert pytest.approx(ttl, 10) == 7500
-        # else:
-        assert pytest.approx(ttl, 10) == 5500
+        if isinstance(cache.client, AsyncHerdClient):
+            assert pytest.approx(ttl, 10) == 7500
+        else:
+            assert pytest.approx(ttl, 10) == 5500
 
         # Test pttl None
         await cache.aset("foo", "foo", timeout=None)
