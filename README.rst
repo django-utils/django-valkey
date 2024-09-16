@@ -89,11 +89,11 @@ also make an issue before going through troubles of coding, someone might alread
 
 Todo
 ~~~~
-1. check type hints to e accurate
+1. check type hints to be accurate
 2. refactor spaghetti codes
 3. review the documentations
 4. work on cluster client
-5. plan for an async client
+5. for more async client
 
 License
 -------
