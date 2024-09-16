@@ -87,3 +87,13 @@ note that ``"CONNECTION_FACTORY"`` overrides ``DJANGO_VALKEY_CONNECTION_FACTORY`
 
 if you want to use another factory you can use the same code with the path to your class.
 
+Configure as session backend
+############################
+
+django can by default use any cache backend as a session backend and you benefit from that by using django-valkey as backend for session storage without installing any additional backends:
+just add these settings to your settings.py
+
+.. code-block:: python
+
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "default
