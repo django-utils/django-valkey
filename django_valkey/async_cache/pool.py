@@ -57,12 +57,21 @@ class AsyncSentinelConnectionFactory(AsyncConnectionFactory):
             **connection_kwargs,
         )
 
-    async def get_connection_pool(self, params: dict) -> ConnectionPool | Any:
+    def get_connection_pool(self, params: dict) -> ConnectionPool | Any:
+        """
+        Given a connection parameters, return a new sentinel connection pool
+        for them.
+        """
         url = urlparse(params["url"])
+
+        # explicitly set service_name and sentinel_manager for the
+        # SentinelConnectionPool constructor since will be called by from_url
         cp_params = params
         cp_params.update(service_name=url.hostname, sentinel_manager=self._sentinel)
-        pool = await super().get_connection_pool(cp_params)
+        pool = super().get_connection_pool(cp_params)
 
+        # convert "is_master" to a boolean if set on the URL, otherwise if not
+        # provided it defaults to True.
         is_master = parse_qs(url.query).get("is_master")
         if is_master:
             pool.is_master = to_bool(is_master[0])
