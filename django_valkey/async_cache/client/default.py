@@ -55,7 +55,8 @@ class AsyncDefaultClient:
         self._options = params.get("OPTIONS", {})
         self._replica_read_only = self._options.get("REPLICA_READ_ONLY", True)
 
-        self._connection_factory = self._options.get(
+        self._connection_factory = getattr(
+            settings,
             "DJANGO_VALKEY_CONNECTION_FACTORY",
             "django_valkey.async_cache.pool.AsyncConnectionFactory",
         )
