@@ -69,10 +69,11 @@ jobs:
 
       - name: tests
         run: |
+          sudo sysctl vm.overcommit_memory=1
           VALKEY_PRIMARY=$(tests/start_valkey.sh)
           VALKEY_SENTINEL=$(tests/start_valkey.sh --sentinel)
           CONTAINERS="$VALKEY_PRIMARY $VALKEY_SENTINEL"
-          trap "docker stop $CONTAINERS && docker rm $CONTAINERS" EXIT
+          trap "sudo docker logs --details $VALKEY_PRIMARY && docker stop $CONTAINERS && docker rm $CONTAINERS" EXIT
           tests/wait_for_valkey.sh $VALKEY_PRIMARY 6379
           tests/wait_for_valkey.sh $VALKEY_SENTINEL 26379
 

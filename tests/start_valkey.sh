@@ -41,6 +41,9 @@ if [[ $SENTINEL == 0 ]]; then
   ARGS=("${ARGS[@]}" --unixsocket /tmp/valkey.sock --unixsocketperm 777)
 fi
 
+sudo chown $(id -u):$(id -g) -R /data
+sudo chmod -R 777 /data
+
 # start valkey
 sudo docker run \
   --health-cmd "valkey-cli -p $PORT:$PORT ping" \
@@ -50,4 +53,4 @@ sudo docker run \
   --network host \
   --user $(id -u):$(id -g) \
   --volume /tmp:/tmp \
-  --detach valkey/valkey valkey-server "${ARGS[@]}"
+  --detach valkey/valkey valkey-server "${ARGS[@]}" --save ""
