@@ -790,14 +790,6 @@ class TestDjangoValkeyCache:
         time.sleep(2)
         assert cache.get("test_key") == "foo"
 
-    def test_clear(self, cache: ValkeyCache):
-        cache.set("foo", "bar")
-        value_from_cache = cache.get("foo")
-        assert value_from_cache == "bar"
-        cache.clear()
-        value_from_cache_after_clear = cache.get("foo")
-        assert value_from_cache_after_clear is None
-
     def test_hset(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
             pytest.skip("ShardClient doesn't support get_client")
@@ -1082,3 +1074,19 @@ class TestDjangoValkeyCache:
         cache.sadd("foo2", "bar2", "bar3")
         assert cache.sunionstore("foo3", "foo1", "foo2") == 3
         assert cache.smembers("foo3") == {"bar1", "bar2", "bar3"}
+
+    def test_clear(self, cache: ValkeyCache):
+        cache.set("foo", "bar")
+        value_from_cache = cache.get("foo")
+        assert value_from_cache == "bar"
+        cache.clear()
+        value_from_cache_after_clear = cache.get("foo")
+        assert value_from_cache_after_clear is None
+
+    def test_clear_true(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't return on clear")
+        cache.set("foo", "bar")
+        assert cache.get("foo") == "bar"
+        assert cache.clear() is True
+        assert cache.get("foo") is None

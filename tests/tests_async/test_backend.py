@@ -813,14 +813,6 @@ class TestAsyncDjangoValkeyCache:
         await asyncio.sleep(2)
         assert await cache.aget("test_key") == "foo"
 
-    async def test_clear(self, cache: AsyncValkeyCache):
-        await cache.aset("foo", "bar")
-        value_from_cache = await cache.aget("foo")
-        assert value_from_cache == "bar"
-        await cache.aclear()
-        value_from_cache_after_clear = await cache.aget("foo")
-        assert value_from_cache_after_clear is None
-
     async def test_hset(self, cache: AsyncValkeyCache):
         # if isinstance(cache.client, ShardClient):
         #     pytest.skip("ShardClient doesn't support get_client")
@@ -1044,3 +1036,17 @@ class TestAsyncDjangoValkeyCache:
         await cache.asadd("foo2", "bar2", "bar3")
         assert await cache.asunionstore("foo3", "foo1", "foo2") == 3
         assert await cache.asmembers("foo3") == {"bar1", "bar2", "bar3"}
+
+    async def test_clear(self, cache: AsyncValkeyCache):
+        await cache.aset("foo", "bar")
+        value_from_cache = await cache.aget("foo")
+        assert value_from_cache == "bar"
+        await cache.aclear()
+        value_from_cache_after_clear = await cache.aget("foo")
+        assert value_from_cache_after_clear is None
+
+    async def test_clear_true(self, cache: AsyncValkeyCache):
+        await cache.aset("foo", "bar")
+        assert await cache.aget("foo") == "bar"
+        assert await cache.aclear() is True
+        assert await cache.aget("foo") is None
