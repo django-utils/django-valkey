@@ -70,7 +70,7 @@ pre-commit = "^4.0.1"
 
 [tool.poetry.group.docs.dependencies]
 sphinx = "^8.0.2"
-sphinx-pdj-theme = "^0.4.0"
+sphinx-pdj-theme = ">=0.4,<0.6"
 
 [build-system]
 requires = ["poetry-core"]
