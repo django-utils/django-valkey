@@ -8,8 +8,14 @@ from django_valkey.base_pool import BaseConnectionFactory
 
 
 class ClusterConnectionFactory(BaseConnectionFactory[ValkeyCluster, ConnectionPool]):
-    path_pool_cls = "valkey.connection.ConnectionPool"
     path_base_cls = "valkey.cluster.ValkeyCluster"
+
+    def __init__(self, options: dict):
+        base_client_cls = options.get("BASE_CLIENT_CLASS", self.path_base_cls)
+        self.base_client_cls: type[ValkeyCluster] = import_string(base_client_cls)
+        self.base_client_cls_kwargs = options.get("BASE_CLIENT_CLS_KWARGS", {})
+
+        self.options = options
 
     def disconnect(self, connection: ValkeyCluster) -> None:
         connection.disconnect_connection_pools()
