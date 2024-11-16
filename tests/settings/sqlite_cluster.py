@@ -3,7 +3,7 @@ SECRET_KEY = "django_tests_secret_key"
 CACHES = {
     "default": {
         "BACKEND": "django_valkey.cluster_cache.cache.ClusterValkeyCache",
-        "LOCATION": ["valkey://127.0.0.1:7005", "valkey://127.0.0.1:7005"],
+        "LOCATION": ["valkey://127.0.0.1:16380", "valkey://127.0.0.1:16381"],
         "OPTIONS": {
             "CLIENT_CLASS": "django_valkey.cluster_cache.client.DefaultClusterClient"
         },
@@ -17,14 +17,14 @@ CACHES = {
     },
     "sample": {
         "BACKEND": "django_valkey.cluster_cache.cache.ClusterValkeyCache",
-        "LOCATION": "valkey://127.0.0.1:7005:0,valkey://127.0.0.1:7002:0",
+        "LOCATION": "valkey://127.0.0.1:16379:0,valkey://127.0.0.1:16380:0",
         "OPTIONS": {
             "CLIENT_CLASS": "django_valkey.cluster_cache.client.DefaultClusterClient"
         },
     },
     "with_prefix": {
         "BACKEND": "django_valkey.cluster_cache.cache.ClusterValkeyCache",
-        "LOCATION": "valkey://127.0.0.1:7005?db=0",
+        "LOCATION": "valkey://127.0.0.1:16379?db=0",
         "OPTIONS": {
             "CLIENT_CLASS": "django_valkey.cluster_cache.client.DefaultClusterClient"
         },
