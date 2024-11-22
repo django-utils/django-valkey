@@ -87,7 +87,9 @@ jobs:
           poetry run invoke devenv
           chmod +x ./util/wait-for-it.sh
           ./util/wait-for-it.sh localhost:6379
+          ./util/wait-for-it.sh localhost:16379
           
+          poetry run pytest tests/tests_cluster/*.py --ds=tests.settings.sqlite_cluster -x
           poetry run pytest tests/*.py --ds=tests.settings.sqlite -x
           poetry run pytest tests/*.py --ds=tests.settings.sqlite_herd -x
           poetry run pytest tests/*.py --ds=tests.settings.sqlite_json -x

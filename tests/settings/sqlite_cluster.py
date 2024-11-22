@@ -5,7 +5,10 @@ CACHES = {
         "BACKEND": "django_valkey.cluster_cache.cache.ClusterValkeyCache",
         "LOCATION": ["valkey://127.0.0.1:16380", "valkey://127.0.0.1:16381"],
         "OPTIONS": {
-            "CLIENT_CLASS": "django_valkey.cluster_cache.client.DefaultClusterClient"
+            "CLIENT_CLASS": "django_valkey.cluster_cache.client.DefaultClusterClient",
+            "BASE_CLIENT_CLS_KWARGS": {
+                "health_check_interval": 3.0,
+            },
         },
     },
     "doesnotexist": {
