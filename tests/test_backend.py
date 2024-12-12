@@ -861,6 +861,18 @@ class TestDjangoValkeyCache:
         assert not cache.hexists("foo_hash2", "foo1")
         assert cache.hexists("foo_hash2", "foo2")
 
+    def test_hdel_many(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+        cache.hset("foo_hash3", "foo1", "bar1")
+        cache.hset("foo_hash3", "foo2", "bar2")
+        assert cache.hlen("foo_hash3") == 2
+        deleted_count = cache.hdel_many("foo_hash3", ["foo1", "foo2"])
+        assert deleted_count == 2
+        assert cache.hlen("foo_hash3") == 0
+        assert not cache.hexists("foo_hash3", "foo1")
+        assert not cache.hexists("foo_hash3", "foo2")
+
     def test_hlen(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
             pytest.skip("ShardClient doesn't support get_client")

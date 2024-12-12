@@ -882,6 +882,16 @@ class TestAsyncDjangoValkeyCache:
         assert not await cache.ahexists("foo_hash2", "foo1")
         assert await cache.ahexists("foo_hash2", "foo2")
 
+    async def test_hdel_many(self, cache: AsyncValkeyCache):
+        await cache.ahset("foo_hash3", "foo1", "bar1")
+        await cache.ahset("foo_hash3", "foo2", "bar2")
+        assert await cache.ahlen("foo_hash3") == 2
+        deleted_count = await cache.ahdel_many("foo_hash3", ["foo1", "foo2"])
+        assert deleted_count == 2
+        assert await cache.ahlen("foo_hash3") == 0
+        assert not await cache.ahexists("foo_hash3", "foo1")
+        assert not await cache.ahexists("foo_hash3", "foo2")
+
     async def test_hlen(self, cache: AsyncValkeyCache):
         # if isinstance(cache.client, ShardClient):
         #     pytest.skip("ShardClient doesn't support get_client")
