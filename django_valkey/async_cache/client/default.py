@@ -1089,6 +1089,19 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
     ahdel = hdel
 
+    async def hdel_many(
+        self,
+        name: str,
+        keys: list,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+    ) -> int:
+        client = await self._get_client(write=True, client=client)
+        nkeys = [await self.make_key(key) for key in keys]
+        return await client.hdel(name, *nkeys)
+
+    ahdel_many = hdel_many
+
     async def hlen(self, name: str, client: AValkey | Any | None = None) -> int:
         """
         Return the number of items in hash name.

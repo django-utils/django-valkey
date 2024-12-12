@@ -1190,6 +1190,17 @@ class BaseClient(Generic[Backend]):
         nkey = self.make_key(key, version=version)
         return client.hdel(name, nkey)
 
+    def hdel_many(
+        self,
+        name: str,
+        keys: list,
+        version: int | None = None,
+        client: Backend | Any | None = None,
+    ) -> int:
+        client = self._get_client(write=True, client=client)
+        nkeys = [self.make_key(key) for key in keys]
+        return client.hdel(name, *nkeys)
+
     def hlen(
         self,
         name: str,
