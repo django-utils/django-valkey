@@ -882,6 +882,17 @@ class TestDjangoValkeyCache:
         result = cache.hget("foo_hash1", "foo2")
         assert result is None
 
+    def test_hgetall(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+
+        cache.hset("foo_hash1", "foo1", "bar1")
+        cache.hset("foo_hash1", "foo2", "bar2")
+        result = cache.hgetall("foo_hash1")
+        assert result == {":1:foo1": "bar1", ":1:foo2": "bar2"}
+        result = cache.hgetall("foo_hash2")
+        assert result == {}
+
     def test_hlen(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
             pytest.skip("ShardClient doesn't support get_client")

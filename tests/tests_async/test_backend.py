@@ -899,6 +899,14 @@ class TestAsyncDjangoValkeyCache:
         result = await cache.ahget("foo_hash1", "foo2")
         assert result is None
 
+    async def test_hgetall(self, cache: AsyncValkeyCache):
+        await cache.ahset("foo_hash1", "foo1", "bar1")
+        await cache.ahset("foo_hash1", "foo2", "bar2")
+        result = await cache.ahgetall("foo_hash1")
+        assert result == {":1:foo1": "bar1", ":1:foo2": "bar2"}
+        result = await cache.ahgetall("foo_hash2")
+        assert result == {}
+
     async def test_hlen(self, cache: AsyncValkeyCache):
         # if isinstance(cache.client, ShardClient):
         #     pytest.skip("ShardClient doesn't support get_client")
