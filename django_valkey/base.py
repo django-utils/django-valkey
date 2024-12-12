@@ -373,6 +373,14 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.ahget(*args, **kwargs)
 
     @omit_exception
+    def hgetall(self, *args, **kwargs) -> dict:
+        return self.client.hgetall(*args, **kwargs)
+
+    @omit_exception
+    async def ahgetall(self, *args, **kwargs) -> dict:
+        return await self.client.ahgetall(*args, **kwargs)
+
+    @omit_exception
     def hlen(self, *args, **kwargs) -> int:
         return self.client.hlen(*args, **kwargs)
 

@@ -1218,6 +1218,20 @@ class BaseClient(Generic[Backend]):
             return None
         return self.decode(value)
 
+    def hgetall(
+        self, name: str, client: Backend | Any | None = None
+    ) -> dict[str, str] | dict:
+        client = self._get_client(write=False, client=client)
+        try:
+            _values = client.hgetall(name)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+        values = {}
+        for key, value in _values.items():
+            values[key.decode()] = self.decode(value)
+
+        return values
+
     def hlen(
         self,
         name: str,
