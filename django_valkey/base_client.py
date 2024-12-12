@@ -1201,6 +1201,23 @@ class BaseClient(Generic[Backend]):
         nkeys = [self.make_key(key) for key in keys]
         return client.hdel(name, *nkeys)
 
+    def hget(
+        self,
+        name: str,
+        key: str,
+        version: int | None = None,
+        client: Backend | Any | None = None,
+    ) -> str | None:
+        client = self._get_client(write=False, client=client)
+        key = self.make_key(key, version=version)
+        try:
+            value = client.hget(name, key)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+        if value is None:
+            return None
+        return self.decode(value)
+
     def hlen(
         self,
         name: str,

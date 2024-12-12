@@ -365,6 +365,14 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.ahdel_many(*args, **kwargs)
 
     @omit_exception
+    def hget(self, *args, **kwargs) -> bytes | None:
+        return self.client.hget(*args, **kwargs)
+
+    @omit_exception
+    async def ahget(self, *args, **kwargs) -> str | None:
+        return await self.client.ahget(*args, **kwargs)
+
+    @omit_exception
     def hlen(self, *args, **kwargs) -> int:
         return self.client.hlen(*args, **kwargs)
 

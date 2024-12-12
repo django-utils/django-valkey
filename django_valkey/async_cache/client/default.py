@@ -1102,6 +1102,25 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
     ahdel_many = hdel_many
 
+    async def hget(
+        self,
+        name: str,
+        key: str,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+    ) -> str | None:
+        client = await self._get_client(write=False, client=client)
+        key = await self.make_key(key, version=version)
+        try:
+            value = await client.hget(name, key)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+        if value is None:
+            return None
+        return await self.decode(value)
+
+    ahget = hget
+
     async def hlen(self, name: str, client: AValkey | Any | None = None) -> int:
         """
         Return the number of items in hash name.

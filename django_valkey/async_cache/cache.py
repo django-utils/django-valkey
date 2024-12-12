@@ -69,6 +69,8 @@ class AsyncValkeyCache(BaseValkeyCache[AsyncDefaultClient, AValkey]):
     hdel = BaseValkeyCache.ahdel
     hdel_many = BaseValkeyCache.ahdel_many
 
+    hget = BaseValkeyCache.ahget
+
     hlen = BaseValkeyCache.ahlen
 
     hkeys = BaseValkeyCache.ahkeys
