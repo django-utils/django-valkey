@@ -389,6 +389,14 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.ahgetall(*args, **kwargs)
 
     @omit_exception
+    def hmget(self, *args, **kwargs) -> dict:
+        return self.client.hmget(*args, **kwargs)
+
+    @omit_exception
+    async def ahmget(self, *args, **kwargs) -> dict:
+        return await self.client.ahmget(*args, **kwargs)
+
+    @omit_exception
     def hincrby(self, *args, **kwargs) -> int:
         return self.client.hincrby(*args, **kwargs)
 

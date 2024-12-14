@@ -1245,6 +1245,23 @@ class BaseClient(Generic[Backend]):
 
         return values
 
+    def hmget(
+        self,
+        name: str,
+        keys: list,
+        version: int | None = None,
+        client: Backend | Any | None = None,
+    ) -> list:
+        client = self._get_client(write=False, client=client)
+        nkeys = [self.make_key(key, version=version) for key in keys]
+        try:
+            values = client.hmget(name, nkeys)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+        values = [self.decode(val) for val in values]
+        return values
+
     def hincrby(
         self,
         name: str,

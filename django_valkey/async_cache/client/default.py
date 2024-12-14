@@ -1152,6 +1152,25 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
     ahgetall = hgetall
 
+    async def hmget(
+        self,
+        name: str,
+        keys: list,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+    ) -> list:
+        client = await self._get_client(write=False, client=client)
+        nkeys = [await self.make_key(key, version=version) for key in keys]
+        try:
+            values = await client.hmget(name, nkeys)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+        values = [await self.decode(val) for val in values]
+        return values
+
+    ahmget = hmget
+
     async def hincrby(
         self,
         name: str,
