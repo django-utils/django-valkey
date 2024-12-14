@@ -1223,3 +1223,12 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         return await client.hexists(name, nkey)
 
     ahexists = hexists
+
+    async def hvals(self, name: str, client: AValkey | Any | None = None) -> list:
+        client = await self._get_client(write=False, client=client)
+        try:
+            return [await self.decode(val) for val in await client.hvals(name)]
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+    ahvals = hvals

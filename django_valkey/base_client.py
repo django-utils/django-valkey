@@ -1316,3 +1316,10 @@ class BaseClient(Generic[Backend]):
         client = self._get_client(write=False, client=client)
         nkey = self.make_key(key, version=version)
         return client.hexists(name, nkey)
+
+    def hvals(self, name: str, client: Backend | Any | None = None) -> list:
+        client = self._get_client(write=False, client=client)
+        try:
+            return [self.decode(val) for val in client.hvals(name)]
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e

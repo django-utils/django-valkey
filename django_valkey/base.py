@@ -427,3 +427,11 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
     @omit_exception
     async def ahexists(self, *args, **kwargs) -> bool:
         return await self.client.ahexists(*args, **kwargs)
+
+    @omit_exception
+    def hvals(self, *args, **kwargs) -> list:
+        return self.client.hvals(*args, **kwargs)
+
+    @omit_exception
+    async def ahvals(self, *args, **kwargs) -> list:
+        return await self.client.ahvals(*args, **kwargs)
