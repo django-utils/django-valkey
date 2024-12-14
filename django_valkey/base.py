@@ -435,3 +435,11 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
     @omit_exception
     async def ahvals(self, *args, **kwargs) -> list:
         return await self.client.ahvals(*args, **kwargs)
+
+    @omit_exception
+    def hstrlen(self, *args, **kwargs) -> int:
+        return self.client.hstrlen(*args, **kwargs)
+
+    @omit_exception
+    async def ahstrlen(self, *args, **kwargs) -> int:
+        return await self.client.ahstrlen(*args, **kwargs)

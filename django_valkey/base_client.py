@@ -1323,3 +1323,17 @@ class BaseClient(Generic[Backend]):
             return [self.decode(val) for val in client.hvals(name)]
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
+
+    def hstrlen(
+        self,
+        name: str,
+        key: KeyT,
+        version: int | None = None,
+        client: Backend | Any | None = None,
+    ) -> int:
+        client = self._get_client(write=False, client=client)
+        nkey = self.make_key(key, version=version)
+        try:
+            return client.hstrlen(name, nkey)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e

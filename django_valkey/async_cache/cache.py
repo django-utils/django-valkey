@@ -84,6 +84,8 @@ class AsyncValkeyCache(BaseValkeyCache[AsyncDefaultClient, AValkey]):
 
     hvals = BaseValkeyCache.ahvals
 
+    hstrlen = BaseValkeyCache.ahstrlen
+
     @omit_exception
     async def set(self, *args, **kwargs):
         return await self.client.aset(*args, **kwargs)

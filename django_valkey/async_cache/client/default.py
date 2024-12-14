@@ -1232,3 +1232,19 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             raise ConnectionInterrupted(connection=client) from e
 
     ahvals = hvals
+
+    async def hstrlen(
+        self,
+        name: str,
+        key: KeyT,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+    ) -> int:
+        client = await self._get_client(write=False, client=client)
+        nkey = await self.make_key(key, version=version)
+        try:
+            return await client.hstrlen(name, nkey)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+    ahstrlen = hstrlen
