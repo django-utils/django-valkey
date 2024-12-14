@@ -1175,6 +1175,19 @@ class BaseClient(Generic[Backend]):
         nvalue = self.encode(value)
         return client.hset(name, nkey, nvalue)
 
+    def hsetnx(
+        self,
+        name: str,
+        key: KeyT,
+        value: EncodableT,
+        version: int | None = None,
+        client: Backend | Any | None = None,
+    ) -> int:
+        client = self._get_client(write=True, client=client)
+        nkey = self.make_key(key, version=version)
+        nvalue = self.encode(value)
+        return client.hsetnx(name, nkey, nvalue)
+
     def hdel(
         self,
         name: str,

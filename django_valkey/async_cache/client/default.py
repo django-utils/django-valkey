@@ -1072,6 +1072,21 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
     ahset = hset
 
+    async def hsetnx(
+        self,
+        name: str,
+        key,
+        value,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+    ) -> int:
+        client = await self._get_client(write=True, client=client)
+        nkey = await self.make_key(key, version=version)
+        nvalue = await self.encode(value)
+        return await client.hsetnx(name, nkey, nvalue)
+
+    ahsetnx = hsetnx
+
     async def hdel(
         self,
         name: str,

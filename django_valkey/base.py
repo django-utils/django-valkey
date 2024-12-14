@@ -349,6 +349,14 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.hset(*args, **kwargs)
 
     @omit_exception
+    def hsetnx(self, *args, **kwargs) -> int:
+        return self.client.hsetnx(*args, **kwargs)
+
+    @omit_exception
+    async def ahsetnx(self, *args, **kwargs) -> int:
+        return await self.client.hsetnx(*args, **kwargs)
+
+    @omit_exception
     def hdel(self, *args, **kwargs) -> int:
         return self.client.hdel(*args, **kwargs)
 
