@@ -73,6 +73,8 @@ class AsyncValkeyCache(BaseValkeyCache[AsyncDefaultClient, AValkey]):
     hget = BaseValkeyCache.ahget
     hgetall = BaseValkeyCache.ahgetall
 
+    hincrby = BaseValkeyCache.ahincrby
+
     hlen = BaseValkeyCache.ahlen
 
     hkeys = BaseValkeyCache.ahkeys

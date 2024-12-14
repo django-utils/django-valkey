@@ -1245,6 +1245,22 @@ class BaseClient(Generic[Backend]):
 
         return values
 
+    def hincrby(
+        self,
+        name: str,
+        key: str,
+        amount: int = 1,
+        version: int | None = None,
+        client: Backend | Any | None = None,
+    ) -> int:
+        client = self._get_client(write=True, client=client)
+        nkey = self.make_key(key, version=version)
+        try:
+            value = client.hincrby(name, nkey, amount)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+        return value
+
     def hlen(
         self,
         name: str,
