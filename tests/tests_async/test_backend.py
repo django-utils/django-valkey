@@ -917,6 +917,13 @@ class TestAsyncDjangoValkeyCache:
         result = await cache.ahgetall("foo_hash2")
         assert result == {}
 
+    async def test_hmget(self, cache: AsyncValkeyCache):
+        await cache.ahset("hash1", "foo1", "bar1")
+        await cache.ahset("hash1", "foo2", "bar2")
+
+        result = await cache.ahmget("hash1", ["foo1", "foo2"])
+        assert result == ["bar1", "bar2"]
+
     async def test_hincrby(self, cache: AsyncValkeyCache):
         await cache.ahset("foo_hash1", "foo1", 1)
         assert await cache.ahget("foo_hash1", "foo1") == 1
