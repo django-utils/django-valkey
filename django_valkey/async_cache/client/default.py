@@ -1054,8 +1054,10 @@ class AsyncDefaultClient(BaseClient[AValkey]):
     async def hset(
         self,
         name: str,
-        key,
-        value,
+        key=None,
+        value=None,
+        mapping: dict | None = None,
+        items: list | None = None,
         version: int | None = None,
         client: AValkey | Any | None = None,
     ) -> int:
@@ -1064,11 +1066,21 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         Returns the number of fields added to the hash.
         """
         client = await self._get_client(write=True, client=client)
+        if key and value:
+            key = await self.make_key(key, version=version)
+            value = await self.encode(value)
+        if mapping:
+            mapping = {
+                await self.make_key(key): await self.encode(value)
+                for key, value in mapping.items()
+            }
+        if items:
+            items = [
+                await (self.encode if index & 1 else self.make_key)(item)
+                for index, item in enumerate(items)
+            ]
 
-        nkey = await self.make_key(key, version)
-        nvalue = await self.encode(value)
-
-        return await client.hset(name, nkey, nvalue)
+        return await client.hset(name, key, value, mapping=mapping, items=items)
 
     ahset = hset
 

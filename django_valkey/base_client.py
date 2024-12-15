@@ -1161,8 +1161,10 @@ class BaseClient(Generic[Backend]):
     def hset(
         self,
         name: str,
-        key: KeyT,
-        value: EncodableT,
+        key: KeyT | None = None,
+        value: EncodableT | None = None,
+        mapping: dict | None = None,
+        items: list | None = None,
         version: int | None = None,
         client: Backend | Any | None = None,
     ) -> int:
@@ -1171,9 +1173,20 @@ class BaseClient(Generic[Backend]):
         Returns the number of fields added to the hash.
         """
         client = self._get_client(write=True, client=client)
-        nkey = self.make_key(key, version=version)
-        nvalue = self.encode(value)
-        return client.hset(name, nkey, nvalue)
+        if key and value:
+            key = self.make_key(key, version=version)
+            value = self.encode(value)
+        if mapping:
+            mapping = {
+                self.make_key(key): self.encode(value) for key, value in mapping.items()
+            }
+        if items:
+            items = [
+                (self.encode if index & 1 else self.make_key)(item)
+                for index, item in enumerate(items)
+            ]
+
+        return client.hset(name, key, value, mapping=mapping, items=items)
 
     def hsetnx(
         self,

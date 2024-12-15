@@ -850,6 +850,17 @@ class TestDjangoValkeyCache:
         assert cache.hexists("foo_hash1", "foo1")
         assert cache.hexists("foo_hash1", "foo2")
 
+    def test_hset_parameters(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+        cache.hset("hash1", mapping={"foo1": "bar1", "baz1": "biz1"})
+        cache.hset("hash1", items=["foo2", "bar2", "baz2", "biz2"])
+        assert cache.hlen("hash1") == 4
+        assert cache.hexists("hash1", "foo1")
+        assert cache.hexists("hash1", "foo2")
+        assert cache.hget("hash1", "foo1") == "bar1"
+        assert cache.hget("hash1", "baz2") == "biz2"
+
     def test_hsetnx(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
             pytest.skip("ShardClient doesn't support get_client")
