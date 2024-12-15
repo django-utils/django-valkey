@@ -985,6 +985,20 @@ class TestDjangoValkeyCache:
         cache.hset("hash7", "bar", "baz")
         assert cache.hstrlen("hash7", "bar") == 18
 
+    def test_hrandfield(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+
+        cache.hset("hash8", mapping={"foo": "bar", "baz": "biz"})
+        res = cache.hrandfield("hash8")
+        assert res in ("foo", "baz")
+
+        res = set(cache.hrandfield("hash8", count=2))
+        assert res == {"foo", "baz"}
+
+        res = set(cache.hrandfield("hash8", count=2, withvalues=True))
+        assert res == {"foo", "bar", "baz", "biz"}
+
     def test_sadd(self, cache: ValkeyCache):
         assert cache.sadd("foo", "bar") == 1
         assert cache.smembers("foo") == {"bar"}

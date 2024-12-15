@@ -983,6 +983,17 @@ class TestAsyncDjangoValkeyCache:
         await cache.hset("hash7", "bar", "baz")
         assert await cache.ahstrlen("hash7", "bar") == 18
 
+    async def test_hrandfield(self, cache: AsyncValkeyCache):
+        await cache.ahset("hash8", mapping={"foo": "bar", "baz": "biz"})
+        res = await cache.ahrandfield("hash8")
+        assert res in ("foo", "baz")
+
+        res = set(await cache.ahrandfield("hash8", count=2))
+        assert res == {"foo", "baz"}
+
+        res = set(await cache.ahrandfield("hash8", count=2, withvalues=True))
+        assert res == {"foo", "bar", "baz", "biz"}
+
     async def test_sadd(self, cache: AsyncValkeyCache):
         assert await cache.asadd("foo", "bar") == 1
         assert await cache.asmembers("foo") == {"bar"}
