@@ -1260,3 +1260,35 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             raise ConnectionInterrupted(connection=client) from e
 
     ahstrlen = hstrlen
+
+    async def hrandfield(
+        self,
+        name: str,
+        count: int | None = None,
+        withvalues: bool = False,
+        client: AValkey | None = None,
+    ) -> str | list | None:
+        client = await self._get_client(write=False, client=client)
+        try:
+            result = await client.hrandfield(
+                key=name, count=count, withvalues=withvalues
+            )
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+        if not result:
+            return None
+        elif count and withvalues:
+            return [
+                (
+                    await self.decode(val)
+                    if index & 1
+                    else self.reverse_key(val.decode())
+                )
+                for index, val in enumerate(result)
+            ]
+        elif count:
+            return [self.reverse_key(val.decode()) for val in result]
+        return self.reverse_key(result.decode())
+
+    ahrandfield = hrandfield

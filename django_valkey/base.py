@@ -443,3 +443,11 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
     @omit_exception
     async def ahstrlen(self, *args, **kwargs) -> int:
         return await self.client.ahstrlen(*args, **kwargs)
+
+    @omit_exception
+    def hrandfield(self, *args, **kwargs) -> str | list:
+        return self.client.hrandfield(*args, **kwargs)
+
+    @omit_exception
+    async def ahrandfield(self, *args, **kwargs) -> str | list:
+        return await self.client.ahrandfield(*args, **kwargs)

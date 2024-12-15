@@ -1350,3 +1350,27 @@ class BaseClient(Generic[Backend]):
             return client.hstrlen(name, nkey)
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
+
+    def hrandfield(
+        self,
+        name: str,
+        count: int | None = None,
+        withvalues: bool = False,
+        client: Backend | None = None,
+    ) -> str | list | None:
+        client = self._get_client(write=False, client=client)
+        try:
+            result = client.hrandfield(key=name, count=count, withvalues=withvalues)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+        if not result:
+            return None
+        elif count and withvalues:
+            return [
+                (self.decode(val) if index & 1 else self.reverse_key(val.decode()))
+                for index, val in enumerate(result)
+            ]
+        elif count:
+            return [self.reverse_key(val.decode()) for val in result]
+        return self.reverse_key(result.decode())
