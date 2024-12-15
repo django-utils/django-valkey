@@ -16,6 +16,8 @@ from pytest_mock import MockerFixture
 
 from django_valkey.async_cache.cache import AsyncValkeyCache
 from django_valkey.async_cache.client import AsyncHerdClient
+from django_valkey.compressors.identity import IdentityCompressor
+from django_valkey.serializers.pickle import PickleSerializer
 from django_valkey.serializers.json import JSONSerializer
 from django_valkey.serializers.msgpack import MSGPackSerializer
 
@@ -963,6 +965,14 @@ class TestAsyncDjangoValkeyCache:
         await cache.ahset("foo_hash6", "foo2", "bar2")
         result = await cache.ahvals("foo_hash6")
         assert result == ["bar1", "bar2"]
+
+    async def test_hstrlen(self, cache: AsyncValkeyCache):
+        if not isinstance(cache.client._serializer, PickleSerializer):
+            pytest.skip("other serializers give different results")
+        if not isinstance(cache.client._compressor, IdentityCompressor):
+            pytest.skip("other compressors give different results")
+        await cache.hset("hash7", "bar", "baz")
+        assert await cache.ahstrlen("hash7", "bar") == 18
 
     async def test_sadd(self, cache: AsyncValkeyCache):
         assert await cache.asadd("foo", "bar") == 1

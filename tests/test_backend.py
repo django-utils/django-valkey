@@ -14,6 +14,7 @@ from pytest_mock import MockerFixture
 
 from django_valkey.cache import ValkeyCache
 from django_valkey.client import ShardClient, herd
+from django_valkey.compressors.identity import IdentityCompressor
 from django_valkey.serializers.json import JSONSerializer
 from django_valkey.serializers.msgpack import MSGPackSerializer
 from django_valkey.serializers.pickle import PickleSerializer
@@ -961,6 +962,17 @@ class TestDjangoValkeyCache:
         cache.hset("foo_hash6", "foo2", "bar2")
         result = cache.hvals("foo_hash6")
         assert result == ["bar1", "bar2"]
+
+    def test_hstrlen(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+        if not isinstance(cache.client._serializer, PickleSerializer):
+            pytest.skip("other serializers give different results")
+        if not isinstance(cache.client._compressor, IdentityCompressor):
+            pytest.skip("other compressors give different results")
+
+        cache.hset("hash7", "bar", "baz")
+        assert cache.hstrlen("hash7", "bar") == 18
 
     def test_sadd(self, cache: ValkeyCache):
         assert cache.sadd("foo", "bar") == 1
