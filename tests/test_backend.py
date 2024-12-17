@@ -938,6 +938,16 @@ class TestDjangoValkeyCache:
         assert cache.hget("foo_hash1", "foo1") == 3
         assert result == 3
 
+    def test_hincrbyfloat(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+
+        cache.hset("foo_hash1", "foo1", 1.0)
+        assert cache.hget("foo_hash1", "foo1") == 1.0
+        result = cache.hincrbyfloat("foo_hash1", "foo1", amount=2.2)
+        assert cache.hget("foo_hash1", "foo1") == 3.2
+        assert result == 3.2
+
     def test_hlen(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
             pytest.skip("ShardClient doesn't support get_client")
