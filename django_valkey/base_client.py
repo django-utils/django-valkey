@@ -524,12 +524,15 @@ class BaseClient(Generic[Backend]):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-    def decode(self, value: EncodableT) -> Any:
+    def decode(self, value: bytes) -> Any:
         """
         Decode the given value.
         """
         try:
-            value = int(value)
+            if value.isdigit():
+                value = int(value)
+            else:
+                value = float(value)
         except (ValueError, TypeError):
             # Handle little values, chosen to be not compressed
             with suppress(CompressorError):
@@ -537,12 +540,12 @@ class BaseClient(Generic[Backend]):
             value = self._serializer.loads(value)
         return value
 
-    def encode(self, value: EncodableT) -> bytes | int:
+    def encode(self, value: EncodableT) -> bytes | int | float:
         """
         Encode the given value.
         """
 
-        if isinstance(value, bool) or not isinstance(value, int):
+        if type(value) is not int and type(value) is not float:
             value = self._serializer.dumps(value)
             return self._compressor.compress(value)
 

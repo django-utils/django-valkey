@@ -403,12 +403,15 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
     aclear = clear
 
-    async def decode(self, value) -> Any:
+    async def decode(self, value: bytes) -> Any:
         """
         Decode the given value.
         """
         try:
-            value = int(value)
+            if value.isdigit():
+                value = int(value)
+            else:
+                value = float(value)
         except (ValueError, TypeError):
             # Handle values that weren't compressed (small stuff)
             with suppress(CompressorError):
@@ -419,11 +422,11 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
     adecode = decode
 
-    async def encode(self, value) -> bytes | int:
+    async def encode(self, value) -> bytes | int | float:
         """
         Encode the given value.
         """
-        if isinstance(value, bool) or not isinstance(value, int):
+        if type(value) is not int and type(value) is not float:
             value = self._serializer.dumps(value)
             return self._compressor.compress(value)
 

@@ -30,6 +30,31 @@ def patch_itersize_setting() -> Iterable[None]:
 
 
 class TestDjangoValkeyCache:
+    def test_set_int(self, cache: ValkeyCache):
+        if isinstance(cache.client, herd.HerdClient):
+            pytest.skip("herd client's set method works differently")
+        cache.set("test_key", 1)
+        result = cache.get("test_key")
+        assert type(result) is int
+        # shard client doesn't have get_client()
+        if not isinstance(cache.client, ShardClient):
+            raw_client = cache.client._get_client(write=False, client=None)
+        else:
+            raw_client = cache.client.get_server(":1:test_key")
+        assert raw_client.get(":1:test_key") == b"1"
+
+    def test_set_float(self, cache: ValkeyCache):
+        if isinstance(cache.client, herd.HerdClient):
+            pytest.skip("herd client's set method works differently")
+        cache.set("test_key2", 1.1)
+        result = cache.get("test_key2")
+        assert type(result) is float
+        if not isinstance(cache.client, ShardClient):
+            raw_client = cache.client._get_client(write=False, client=None)
+        else:
+            raw_client = cache.client.get_server(":1:test_key2")
+        assert raw_client.get(":1:test_key2") == b"1.1"
+
     def test_setnx(self, cache: ValkeyCache):
         # we should ensure there is no test_key_nx in valkey
         cache.delete("test_key_nx")
@@ -866,6 +891,24 @@ class TestDjangoValkeyCache:
     def test_sadd(self, cache: ValkeyCache):
         assert cache.sadd("foo", "bar") == 1
         assert cache.smembers("foo") == {"bar"}
+
+    def test_sadd_int(self, cache: ValkeyCache):
+        cache.sadd("foo", 1)
+        assert cache.smembers("foo") == {1}
+        if not isinstance(cache.client, ShardClient):
+            raw_client = cache.client._get_client(write=False, client=None)
+        else:
+            raw_client = cache.client.get_server(":1:foo")
+        assert raw_client.smembers(":1:foo") == [b"1"]
+
+    def test_sadd_float(self, cache: ValkeyCache):
+        cache.sadd("foo", 1.2)
+        assert cache.smembers("foo") == {1.2}
+        if not isinstance(cache.client, ShardClient):
+            raw_client = cache.client._get_client(write=False, client=None)
+        else:
+            raw_client = cache.client.get_server(":1:foo")
+        assert raw_client.smembers(":1:foo") == [b"1.2"]
 
     def test_scard(self, cache: ValkeyCache):
         cache.sadd("foo", "bar", "bar2")

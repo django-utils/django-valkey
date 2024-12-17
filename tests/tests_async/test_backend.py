@@ -31,6 +31,24 @@ async def patch_itersize_setting() -> Iterable[None]:
 
 @pytest.mark.asyncio(loop_scope="session")
 class TestAsyncDjangoValkeyCache:
+    async def test_set_int(self, cache: AsyncValkeyCache):
+        if isinstance(cache.client, AsyncHerdClient):
+            pytest.skip("Herd client's set method works differently")
+        await cache.aset("test_key", 1)
+        result = await cache.aget("test_key")
+        assert type(result) is int
+        raw_client = await cache.client._get_client(write=False, client=None)
+        assert await raw_client.get(":1:test_key") == b"1"
+
+    async def test_set_float(self, cache: AsyncValkeyCache):
+        if isinstance(cache.client, AsyncHerdClient):
+            pytest.skip("Herd client's set method works differently")
+        await cache.aset("test_key2", 1.1)
+        result = await cache.aget("test_key2")
+        assert type(result) is float
+        raw_client = await cache.client._get_client(write=False, client=None)
+        assert await raw_client.get(":1:test_key2") == b"1.1"
+
     async def test_setnx(self, cache: AsyncValkeyCache):
         await cache.delete("test_key_nx")
         res = await cache.get("test_key_nx")
@@ -894,6 +912,18 @@ class TestAsyncDjangoValkeyCache:
     async def test_sadd(self, cache: AsyncValkeyCache):
         assert await cache.asadd("foo", "bar") == 1
         assert await cache.asmembers("foo") == {"bar"}
+
+    async def test_sadd_int(self, cache: AsyncValkeyCache):
+        await cache.asadd("foo", 1)
+        assert await cache.asmembers("foo") == {1}
+        raw_client = await cache.client._get_client(write=False, client=None)
+        assert await raw_client.smembers(":1:foo") == [b"1"]
+
+    async def test_sadd_float(self, cache: AsyncValkeyCache):
+        await cache.asadd("foo", 1.2)
+        assert await cache.asmembers("foo") == {1.2}
+        raw_client = await cache.client._get_client(write=False, client=None)
+        assert await raw_client.smembers(":1:foo") == [b"1.2"]
 
     async def test_scard(self, cache: AsyncValkeyCache):
         await cache.asadd("foo", "bar", "bar2")
