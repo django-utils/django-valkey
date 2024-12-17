@@ -16,6 +16,8 @@ from pytest_mock import MockerFixture
 
 from django_valkey.async_cache.cache import AsyncValkeyCache
 from django_valkey.async_cache.client import AsyncHerdClient
+from django_valkey.compressors.identity import IdentityCompressor
+from django_valkey.serializers.pickle import PickleSerializer
 from django_valkey.serializers.json import JSONSerializer
 from django_valkey.serializers.msgpack import MSGPackSerializer
 
@@ -870,6 +872,25 @@ class TestAsyncDjangoValkeyCache:
         assert await cache.ahexists("foo_hash1", "foo1")
         assert await cache.ahexists("foo_hash1", "foo2")
 
+    async def test_hset_parameters(self, cache: AsyncValkeyCache):
+        await cache.ahset("hash1", mapping={"foo1": "bar1", "baz1": "biz1"})
+        await cache.ahset("hash1", items=["foo2", "bar2", "baz2", "biz2"])
+        assert await cache.ahlen("hash1") == 4
+        assert await cache.ahexists("hash1", "foo1")
+        assert await cache.ahexists("hash1", "foo2")
+        assert await cache.ahget("hash1", "foo1") == "bar1"
+        assert await cache.ahget("hash1", "baz2") == "biz2"
+
+    async def test_hsetnx(self, cache: AsyncValkeyCache):
+        res = await cache.ahsetnx("bar_hash1", "foo1", "baz1")
+        assert res == 1
+        result = await cache.ahget("bar_hash1", "foo1")
+        assert result == "baz1"
+        res = await cache.ahsetnx("bar_hash1", "foo1", "baz2")
+        assert res == 0
+        result = await cache.ahget("bar_hash1", "foo1")
+        assert result == "baz1"
+
     async def test_hdel(self, cache: AsyncValkeyCache):
         # if isinstance(cache.client, ShardClient):
         #     pytest.skip("ShardClient doesn't support get_client")
@@ -881,6 +902,52 @@ class TestAsyncDjangoValkeyCache:
         assert await cache.ahlen("foo_hash2") == 1
         assert not await cache.ahexists("foo_hash2", "foo1")
         assert await cache.ahexists("foo_hash2", "foo2")
+
+    async def test_hdel_many(self, cache: AsyncValkeyCache):
+        await cache.ahset("foo_hash3", "foo1", "bar1")
+        await cache.ahset("foo_hash3", "foo2", "bar2")
+        assert await cache.ahlen("foo_hash3") == 2
+        deleted_count = await cache.ahdel_many("foo_hash3", ["foo1", "foo2"])
+        assert deleted_count == 2
+        assert await cache.ahlen("foo_hash3") == 0
+        assert not await cache.ahexists("foo_hash3", "foo1")
+        assert not await cache.ahexists("foo_hash3", "foo2")
+
+    async def test_hget(self, cache: AsyncValkeyCache):
+        await cache.ahset("foo_hash1", "foo1", "bar1")
+        result = await cache.ahget("foo_hash1", "foo1")
+        assert result == "bar1"
+        result = await cache.ahget("foo_hash1", "foo2")
+        assert result is None
+
+    async def test_hgetall(self, cache: AsyncValkeyCache):
+        await cache.ahset("foo_hash1", "foo1", "bar1")
+        await cache.ahset("foo_hash1", "foo2", "bar2")
+        result = await cache.ahgetall("foo_hash1")
+        assert result == {":1:foo1": "bar1", ":1:foo2": "bar2"}
+        result = await cache.ahgetall("foo_hash2")
+        assert result == {}
+
+    async def test_hmget(self, cache: AsyncValkeyCache):
+        await cache.ahset("hash1", "foo1", "bar1")
+        await cache.ahset("hash1", "foo2", "bar2")
+
+        result = await cache.ahmget("hash1", ["foo1", "foo2"])
+        assert result == ["bar1", "bar2"]
+
+    async def test_hincrby(self, cache: AsyncValkeyCache):
+        await cache.ahset("foo_hash1", "foo1", 1)
+        assert await cache.ahget("foo_hash1", "foo1") == 1
+        result = await cache.ahincrby("foo_hash1", "foo1", amount=2)
+        assert await cache.ahget("foo_hash1", "foo1") == 3
+        assert result == 3
+
+    async def test_hincrbyfloat(self, cache: AsyncValkeyCache):
+        await cache.ahset("foo_hash1", "foo1", 1.0)
+        assert await cache.ahget("foo_hash1", "foo1") == 1.0
+        result = await cache.ahincrbyfloat("foo_hash1", "foo1", amount=2.2)
+        assert await cache.ahget("foo_hash1", "foo1") == 3.2
+        assert result == 3.2
 
     async def test_hlen(self, cache: AsyncValkeyCache):
         # if isinstance(cache.client, ShardClient):
@@ -908,6 +975,31 @@ class TestAsyncDjangoValkeyCache:
         await cache.ahset("foo_hash5", "foo1", "bar1")
         assert await cache.ahexists("foo_hash5", "foo1")
         assert not await cache.ahexists("foo_hash5", "foo")
+
+    async def test_hvals(self, cache: AsyncValkeyCache):
+        await cache.ahset("foo_hash6", "foo1", "bar1")
+        await cache.ahset("foo_hash6", "foo2", "bar2")
+        result = await cache.ahvals("foo_hash6")
+        assert result == ["bar1", "bar2"]
+
+    async def test_hstrlen(self, cache: AsyncValkeyCache):
+        if not isinstance(cache.client._serializer, PickleSerializer):
+            pytest.skip("other serializers give different results")
+        if not isinstance(cache.client._compressor, IdentityCompressor):
+            pytest.skip("other compressors give different results")
+        await cache.hset("hash7", "bar", "baz")
+        assert await cache.ahstrlen("hash7", "bar") == 18
+
+    async def test_hrandfield(self, cache: AsyncValkeyCache):
+        await cache.ahset("hash8", mapping={"foo": "bar", "baz": "biz"})
+        res = await cache.ahrandfield("hash8")
+        assert res in ("foo", "baz")
+
+        res = set(await cache.ahrandfield("hash8", count=2))
+        assert res == {"foo", "baz"}
+
+        res = set(await cache.ahrandfield("hash8", count=2, withvalues=True))
+        assert res == {"foo", "bar", "baz", "biz"}
 
     async def test_sadd(self, cache: AsyncValkeyCache):
         assert await cache.asadd("foo", "bar") == 1

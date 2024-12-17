@@ -11,6 +11,10 @@ Install django-valkey
 As explained in :doc:`installation` you can easily install django-valkey.
 this project can easily live alongside django-redis so you don't need to delete that if you don't want to.
 
+Different behaviour
+###################
+
+in django-redis floats are serialized when being passed to redis, as of 1.0.0 django-valkey does not serialize floats to support atomic float operations, in theory this doesn't break anything since the return value does not change.
 
 Different configuration
 #######################
@@ -47,3 +51,8 @@ More options
 
 Although the above steps are completely enough to get you going, if you want you can now easily customize your compression behaviour.
 Check out :doc:`configure/compressors` for complete explanation.
+
+More methods
+############
+
+as of 1.0.0 every hash operation is supported.

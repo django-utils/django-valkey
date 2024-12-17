@@ -1161,8 +1161,10 @@ class BaseClient(Generic[Backend]):
     def hset(
         self,
         name: str,
-        key: KeyT,
-        value: EncodableT,
+        key: KeyT | None = None,
+        value: EncodableT | None = None,
+        mapping: dict | None = None,
+        items: list | None = None,
         version: int | None = None,
         client: Backend | Any | None = None,
     ) -> int:
@@ -1171,9 +1173,33 @@ class BaseClient(Generic[Backend]):
         Returns the number of fields added to the hash.
         """
         client = self._get_client(write=True, client=client)
+        if key and value:
+            key = self.make_key(key, version=version)
+            value = self.encode(value)
+        if mapping:
+            mapping = {
+                self.make_key(key): self.encode(value) for key, value in mapping.items()
+            }
+        if items:
+            items = [
+                (self.encode if index & 1 else self.make_key)(item)
+                for index, item in enumerate(items)
+            ]
+
+        return client.hset(name, key, value, mapping=mapping, items=items)
+
+    def hsetnx(
+        self,
+        name: str,
+        key: KeyT,
+        value: EncodableT,
+        version: int | None = None,
+        client: Backend | Any | None = None,
+    ) -> int:
+        client = self._get_client(write=True, client=client)
         nkey = self.make_key(key, version=version)
         nvalue = self.encode(value)
-        return client.hset(name, nkey, nvalue)
+        return client.hsetnx(name, nkey, nvalue)
 
     def hdel(
         self,
@@ -1189,6 +1215,97 @@ class BaseClient(Generic[Backend]):
         client = self._get_client(write=True, client=client)
         nkey = self.make_key(key, version=version)
         return client.hdel(name, nkey)
+
+    def hdel_many(
+        self,
+        name: str,
+        keys: list,
+        version: int | None = None,
+        client: Backend | Any | None = None,
+    ) -> int:
+        client = self._get_client(write=True, client=client)
+        nkeys = [self.make_key(key) for key in keys]
+        return client.hdel(name, *nkeys)
+
+    def hget(
+        self,
+        name: str,
+        key: str,
+        version: int | None = None,
+        client: Backend | Any | None = None,
+    ) -> str | None:
+        client = self._get_client(write=False, client=client)
+        key = self.make_key(key, version=version)
+        try:
+            value = client.hget(name, key)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+        if value is None:
+            return None
+        return self.decode(value)
+
+    def hgetall(
+        self, name: str, client: Backend | Any | None = None
+    ) -> dict[str, str] | dict:
+        client = self._get_client(write=False, client=client)
+        try:
+            _values = client.hgetall(name)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+        values = {}
+        for key, value in _values.items():
+            values[key.decode()] = self.decode(value)
+
+        return values
+
+    def hmget(
+        self,
+        name: str,
+        keys: list,
+        version: int | None = None,
+        client: Backend | Any | None = None,
+    ) -> list:
+        client = self._get_client(write=False, client=client)
+        nkeys = [self.make_key(key, version=version) for key in keys]
+        try:
+            values = client.hmget(name, nkeys)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+        values = [self.decode(val) for val in values]
+        return values
+
+    def hincrby(
+        self,
+        name: str,
+        key: str,
+        amount: int = 1,
+        version: int | None = None,
+        client: Backend | Any | None = None,
+    ) -> int:
+        client = self._get_client(write=True, client=client)
+        nkey = self.make_key(key, version=version)
+        try:
+            value = client.hincrby(name, nkey, amount)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+        return value
+
+    def hincrbyfloat(
+        self,
+        name: str,
+        key: str,
+        amount: float = 1.0,
+        version: int | None = None,
+        client: Backend | Any | None = None,
+    ) -> float:
+        client = self._get_client(write=True, client=client)
+        nkey = self.make_key(key, version=version)
+        try:
+            value = client.hincrbyfloat(name, nkey, amount)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+        return value
 
     def hlen(
         self,
@@ -1228,3 +1345,48 @@ class BaseClient(Generic[Backend]):
         client = self._get_client(write=False, client=client)
         nkey = self.make_key(key, version=version)
         return client.hexists(name, nkey)
+
+    def hvals(self, name: str, client: Backend | Any | None = None) -> list:
+        client = self._get_client(write=False, client=client)
+        try:
+            return [self.decode(val) for val in client.hvals(name)]
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+    def hstrlen(
+        self,
+        name: str,
+        key: KeyT,
+        version: int | None = None,
+        client: Backend | Any | None = None,
+    ) -> int:
+        client = self._get_client(write=False, client=client)
+        nkey = self.make_key(key, version=version)
+        try:
+            return client.hstrlen(name, nkey)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+    def hrandfield(
+        self,
+        name: str,
+        count: int | None = None,
+        withvalues: bool = False,
+        client: Backend | None = None,
+    ) -> str | list | None:
+        client = self._get_client(write=False, client=client)
+        try:
+            result = client.hrandfield(key=name, count=count, withvalues=withvalues)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+        if not result:
+            return None
+        elif count and withvalues:
+            return [
+                (self.decode(val) if index & 1 else self.reverse_key(val.decode()))
+                for index, val in enumerate(result)
+            ]
+        elif count:
+            return [self.reverse_key(val.decode()) for val in result]
+        return self.reverse_key(result.decode())

@@ -65,14 +65,29 @@ class AsyncValkeyCache(BaseValkeyCache[AsyncDefaultClient, AValkey]):
     sunionstore = BaseValkeyCache.asunionstore
 
     hset = BaseValkeyCache.ahset
+    hsetnx = BaseValkeyCache.ahsetnx
 
     hdel = BaseValkeyCache.ahdel
+    hdel_many = BaseValkeyCache.ahdel_many
+
+    hget = BaseValkeyCache.ahget
+    hgetall = BaseValkeyCache.ahgetall
+    hmget = BaseValkeyCache.ahmget
+
+    hincrby = BaseValkeyCache.ahincrby
+    hincrbyfloat = BaseValkeyCache.ahincrbyfloat
 
     hlen = BaseValkeyCache.ahlen
 
     hkeys = BaseValkeyCache.ahkeys
 
     hexists = BaseValkeyCache.ahexists
+
+    hvals = BaseValkeyCache.ahvals
+
+    hstrlen = BaseValkeyCache.ahstrlen
+
+    hrandfield = BaseValkeyCache.ahrandfield
 
     @omit_exception
     async def set(self, *args, **kwargs):

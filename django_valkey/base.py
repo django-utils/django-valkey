@@ -349,12 +349,68 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.hset(*args, **kwargs)
 
     @omit_exception
+    def hsetnx(self, *args, **kwargs) -> int:
+        return self.client.hsetnx(*args, **kwargs)
+
+    @omit_exception
+    async def ahsetnx(self, *args, **kwargs) -> int:
+        return await self.client.hsetnx(*args, **kwargs)
+
+    @omit_exception
     def hdel(self, *args, **kwargs) -> int:
         return self.client.hdel(*args, **kwargs)
 
     @omit_exception
     async def ahdel(self, *args, **kwargs) -> int:
         return await self.client.hdel(*args, **kwargs)
+
+    @omit_exception
+    def hdel_many(self, *args, **kwargs) -> int:
+        return self.client.hdel_many(*args, **kwargs)
+
+    @omit_exception
+    async def ahdel_many(self, *args, **kwargs) -> int:
+        return await self.client.ahdel_many(*args, **kwargs)
+
+    @omit_exception
+    def hget(self, *args, **kwargs) -> bytes | None:
+        return self.client.hget(*args, **kwargs)
+
+    @omit_exception
+    async def ahget(self, *args, **kwargs) -> str | None:
+        return await self.client.ahget(*args, **kwargs)
+
+    @omit_exception
+    def hgetall(self, *args, **kwargs) -> dict:
+        return self.client.hgetall(*args, **kwargs)
+
+    @omit_exception
+    async def ahgetall(self, *args, **kwargs) -> dict:
+        return await self.client.ahgetall(*args, **kwargs)
+
+    @omit_exception
+    def hmget(self, *args, **kwargs) -> dict:
+        return self.client.hmget(*args, **kwargs)
+
+    @omit_exception
+    async def ahmget(self, *args, **kwargs) -> dict:
+        return await self.client.ahmget(*args, **kwargs)
+
+    @omit_exception
+    def hincrby(self, *args, **kwargs) -> int:
+        return self.client.hincrby(*args, **kwargs)
+
+    @omit_exception
+    async def ahincrby(self, *args, **kwargs) -> int:
+        return await self.client.ahincrby(*args, **kwargs)
+
+    @omit_exception
+    def hincrbyfloat(self, *args, **kwargs) -> float:
+        return self.client.hincrbyfloat(*args, **kwargs)
+
+    @omit_exception
+    async def ahincrbyfloat(self, *args, **kwargs) -> float:
+        return await self.client.ahincrbyfloat(*args, **kwargs)
 
     @omit_exception
     def hlen(self, *args, **kwargs) -> int:
@@ -379,3 +435,27 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
     @omit_exception
     async def ahexists(self, *args, **kwargs) -> bool:
         return await self.client.ahexists(*args, **kwargs)
+
+    @omit_exception
+    def hvals(self, *args, **kwargs) -> list:
+        return self.client.hvals(*args, **kwargs)
+
+    @omit_exception
+    async def ahvals(self, *args, **kwargs) -> list:
+        return await self.client.ahvals(*args, **kwargs)
+
+    @omit_exception
+    def hstrlen(self, *args, **kwargs) -> int:
+        return self.client.hstrlen(*args, **kwargs)
+
+    @omit_exception
+    async def ahstrlen(self, *args, **kwargs) -> int:
+        return await self.client.ahstrlen(*args, **kwargs)
+
+    @omit_exception
+    def hrandfield(self, *args, **kwargs) -> str | list:
+        return self.client.hrandfield(*args, **kwargs)
+
+    @omit_exception
+    async def ahrandfield(self, *args, **kwargs) -> str | list:
+        return await self.client.ahrandfield(*args, **kwargs)

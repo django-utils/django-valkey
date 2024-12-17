@@ -14,6 +14,7 @@ from pytest_mock import MockerFixture
 
 from django_valkey.cache import ValkeyCache
 from django_valkey.client import ShardClient, herd
+from django_valkey.compressors.identity import IdentityCompressor
 from django_valkey.serializers.json import JSONSerializer
 from django_valkey.serializers.msgpack import MSGPackSerializer
 from django_valkey.serializers.pickle import PickleSerializer
@@ -849,6 +850,30 @@ class TestDjangoValkeyCache:
         assert cache.hexists("foo_hash1", "foo1")
         assert cache.hexists("foo_hash1", "foo2")
 
+    def test_hset_parameters(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+        cache.hset("hash1", mapping={"foo1": "bar1", "baz1": "biz1"})
+        cache.hset("hash1", items=["foo2", "bar2", "baz2", "biz2"])
+        assert cache.hlen("hash1") == 4
+        assert cache.hexists("hash1", "foo1")
+        assert cache.hexists("hash1", "foo2")
+        assert cache.hget("hash1", "foo1") == "bar1"
+        assert cache.hget("hash1", "baz2") == "biz2"
+
+    def test_hsetnx(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+
+        res = cache.hsetnx("bar_hash1", "foo1", "baz1")
+        assert res == 1
+        result = cache.hget("bar_hash1", "foo1")
+        assert result == "baz1"
+        res = cache.hsetnx("bar_hash1", "foo1", "baz2")
+        assert res == 0
+        result = cache.hget("bar_hash1", "foo1")
+        assert result == "baz1"
+
     def test_hdel(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
             pytest.skip("ShardClient doesn't support get_client")
@@ -860,6 +885,68 @@ class TestDjangoValkeyCache:
         assert cache.hlen("foo_hash2") == 1
         assert not cache.hexists("foo_hash2", "foo1")
         assert cache.hexists("foo_hash2", "foo2")
+
+    def test_hdel_many(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+        cache.hset("foo_hash3", "foo1", "bar1")
+        cache.hset("foo_hash3", "foo2", "bar2")
+        assert cache.hlen("foo_hash3") == 2
+        deleted_count = cache.hdel_many("foo_hash3", ["foo1", "foo2"])
+        assert deleted_count == 2
+        assert cache.hlen("foo_hash3") == 0
+        assert not cache.hexists("foo_hash3", "foo1")
+        assert not cache.hexists("foo_hash3", "foo2")
+
+    def test_hget(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+        cache.hset("foo_hash1", "foo1", "bar1")
+        result = cache.hget("foo_hash1", "foo1")
+        assert result == "bar1"
+        result = cache.hget("foo_hash1", "foo2")
+        assert result is None
+
+    def test_hgetall(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+
+        cache.hset("foo_hash1", "foo1", "bar1")
+        cache.hset("foo_hash1", "foo2", "bar2")
+        result = cache.hgetall("foo_hash1")
+        assert result == {":1:foo1": "bar1", ":1:foo2": "bar2"}
+        result = cache.hgetall("foo_hash2")
+        assert result == {}
+
+    def test_hmget(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+
+        cache.hset("hash1", "foo1", "bar1")
+        cache.hset("hash1", "foo2", "bar2")
+
+        result = cache.hmget("hash1", ["foo1", "foo2"])
+        assert result == ["bar1", "bar2"]
+
+    def test_hincrby(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+
+        cache.hset("foo_hash1", "foo1", 1)
+        assert cache.hget("foo_hash1", "foo1") == 1
+        result = cache.hincrby("foo_hash1", "foo1", amount=2)
+        assert cache.hget("foo_hash1", "foo1") == 3
+        assert result == 3
+
+    def test_hincrbyfloat(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+
+        cache.hset("foo_hash1", "foo1", 1.0)
+        assert cache.hget("foo_hash1", "foo1") == 1.0
+        result = cache.hincrbyfloat("foo_hash1", "foo1", amount=2.2)
+        assert cache.hget("foo_hash1", "foo1") == 3.2
+        assert result == 3.2
 
     def test_hlen(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
@@ -887,6 +974,40 @@ class TestDjangoValkeyCache:
         cache.hset("foo_hash5", "foo1", "bar1")
         assert cache.hexists("foo_hash5", "foo1")
         assert not cache.hexists("foo_hash5", "foo")
+
+    def test_hvals(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+
+        cache.hset("foo_hash6", "foo1", "bar1")
+        cache.hset("foo_hash6", "foo2", "bar2")
+        result = cache.hvals("foo_hash6")
+        assert result == ["bar1", "bar2"]
+
+    def test_hstrlen(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+        if not isinstance(cache.client._serializer, PickleSerializer):
+            pytest.skip("other serializers give different results")
+        if not isinstance(cache.client._compressor, IdentityCompressor):
+            pytest.skip("other compressors give different results")
+
+        cache.hset("hash7", "bar", "baz")
+        assert cache.hstrlen("hash7", "bar") == 18
+
+    def test_hrandfield(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+
+        cache.hset("hash8", mapping={"foo": "bar", "baz": "biz"})
+        res = cache.hrandfield("hash8")
+        assert res in ("foo", "baz")
+
+        res = set(cache.hrandfield("hash8", count=2))
+        assert res == {"foo", "baz"}
+
+        res = set(cache.hrandfield("hash8", count=2, withvalues=True))
+        assert res == {"foo", "bar", "baz", "biz"}
 
     def test_sadd(self, cache: ValkeyCache):
         assert cache.sadd("foo", "bar") == 1

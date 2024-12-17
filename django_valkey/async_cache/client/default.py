@@ -1054,8 +1054,10 @@ class AsyncDefaultClient(BaseClient[AValkey]):
     async def hset(
         self,
         name: str,
-        key,
-        value,
+        key=None,
+        value=None,
+        mapping: dict | None = None,
+        items: list | None = None,
         version: int | None = None,
         client: AValkey | Any | None = None,
     ) -> int:
@@ -1064,13 +1066,38 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         Returns the number of fields added to the hash.
         """
         client = await self._get_client(write=True, client=client)
+        if key and value:
+            key = await self.make_key(key, version=version)
+            value = await self.encode(value)
+        if mapping:
+            mapping = {
+                await self.make_key(key): await self.encode(value)
+                for key, value in mapping.items()
+            }
+        if items:
+            items = [
+                await (self.encode if index & 1 else self.make_key)(item)
+                for index, item in enumerate(items)
+            ]
 
-        nkey = await self.make_key(key, version)
-        nvalue = await self.encode(value)
-
-        return await client.hset(name, nkey, nvalue)
+        return await client.hset(name, key, value, mapping=mapping, items=items)
 
     ahset = hset
+
+    async def hsetnx(
+        self,
+        name: str,
+        key,
+        value,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+    ) -> int:
+        client = await self._get_client(write=True, client=client)
+        nkey = await self.make_key(key, version=version)
+        nvalue = await self.encode(value)
+        return await client.hsetnx(name, nkey, nvalue)
+
+    ahsetnx = hsetnx
 
     async def hdel(
         self,
@@ -1088,6 +1115,109 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         return await client.hdel(name, nkey)
 
     ahdel = hdel
+
+    async def hdel_many(
+        self,
+        name: str,
+        keys: list,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+    ) -> int:
+        client = await self._get_client(write=True, client=client)
+        nkeys = [await self.make_key(key) for key in keys]
+        return await client.hdel(name, *nkeys)
+
+    ahdel_many = hdel_many
+
+    async def hget(
+        self,
+        name: str,
+        key: str,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+    ) -> str | None:
+        client = await self._get_client(write=False, client=client)
+        key = await self.make_key(key, version=version)
+        try:
+            value = await client.hget(name, key)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+        if value is None:
+            return None
+        return await self.decode(value)
+
+    ahget = hget
+
+    async def hgetall(
+        self, name: str, client: AValkey | Any | None = None
+    ) -> dict[str, str] | dict:
+        client = await self._get_client(write=False, client=client)
+        try:
+            _values = await client.hgetall(name)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+        values = {}
+        for key, value in _values.items():
+            values[key.decode()] = await self.decode(value)
+        return values
+
+    ahgetall = hgetall
+
+    async def hmget(
+        self,
+        name: str,
+        keys: list,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+    ) -> list:
+        client = await self._get_client(write=False, client=client)
+        nkeys = [await self.make_key(key, version=version) for key in keys]
+        try:
+            values = await client.hmget(name, nkeys)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+        values = [await self.decode(val) for val in values]
+        return values
+
+    ahmget = hmget
+
+    async def hincrby(
+        self,
+        name: str,
+        key: str,
+        amount: int = 1,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+    ) -> int:
+        client = await self._get_client(write=True, client=client)
+        nkey = await self.make_key(key, version=version)
+        try:
+            value = await client.hincrby(name, nkey, amount)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+        return value
+
+    ahincrby = hincrby
+
+    async def hincrbyfloat(
+        self,
+        name: str,
+        key: str,
+        amount: float = 1.0,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+    ) -> float:
+        client = await self._get_client(write=True, client=client)
+        nkey = await self.make_key(key, version=version)
+        try:
+            value = await client.hincrbyfloat(name, nkey, amount)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+        return value
+
+    ahincrbyfloat = hincrbyfloat
 
     async def hlen(self, name: str, client: AValkey | Any | None = None) -> int:
         """
@@ -1123,3 +1253,60 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         return await client.hexists(name, nkey)
 
     ahexists = hexists
+
+    async def hvals(self, name: str, client: AValkey | Any | None = None) -> list:
+        client = await self._get_client(write=False, client=client)
+        try:
+            return [await self.decode(val) for val in await client.hvals(name)]
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+    ahvals = hvals
+
+    async def hstrlen(
+        self,
+        name: str,
+        key: KeyT,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+    ) -> int:
+        client = await self._get_client(write=False, client=client)
+        nkey = await self.make_key(key, version=version)
+        try:
+            return await client.hstrlen(name, nkey)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+    ahstrlen = hstrlen
+
+    async def hrandfield(
+        self,
+        name: str,
+        count: int | None = None,
+        withvalues: bool = False,
+        client: AValkey | None = None,
+    ) -> str | list | None:
+        client = await self._get_client(write=False, client=client)
+        try:
+            result = await client.hrandfield(
+                key=name, count=count, withvalues=withvalues
+            )
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+        if not result:
+            return None
+        elif count and withvalues:
+            return [
+                (
+                    await self.decode(val)
+                    if index & 1
+                    else self.reverse_key(val.decode())
+                )
+                for index, val in enumerate(result)
+            ]
+        elif count:
+            return [self.reverse_key(val.decode()) for val in result]
+        return self.reverse_key(result.decode())
+
+    ahrandfield = hrandfield
