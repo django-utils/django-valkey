@@ -1291,6 +1291,22 @@ class BaseClient(Generic[Backend]):
             raise ConnectionInterrupted(connection=client) from e
         return value
 
+    def hincrbyfloat(
+        self,
+        name: str,
+        key: str,
+        amount: float = 1.0,
+        version: int | None = None,
+        client: Backend | Any | None = None,
+    ) -> float:
+        client = self._get_client(write=True, client=client)
+        nkey = self.make_key(key, version=version)
+        try:
+            value = client.hincrbyfloat(name, nkey, amount)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+        return value
+
     def hlen(
         self,
         name: str,

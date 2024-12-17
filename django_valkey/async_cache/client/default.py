@@ -1201,6 +1201,24 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
     ahincrby = hincrby
 
+    async def hincrbyfloat(
+        self,
+        name: str,
+        key: str,
+        amount: float = 1.0,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+    ) -> float:
+        client = await self._get_client(write=True, client=client)
+        nkey = await self.make_key(key, version=version)
+        try:
+            value = await client.hincrbyfloat(name, nkey, amount)
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+        return value
+
+    ahincrbyfloat = hincrbyfloat
+
     async def hlen(self, name: str, client: AValkey | Any | None = None) -> int:
         """
         Return the number of items in hash name.

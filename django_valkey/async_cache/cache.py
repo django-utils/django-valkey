@@ -75,6 +75,7 @@ class AsyncValkeyCache(BaseValkeyCache[AsyncDefaultClient, AValkey]):
     hmget = BaseValkeyCache.ahmget
 
     hincrby = BaseValkeyCache.ahincrby
+    hincrbyfloat = BaseValkeyCache.ahincrbyfloat
 
     hlen = BaseValkeyCache.ahlen
 

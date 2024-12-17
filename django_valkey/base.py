@@ -405,6 +405,14 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.ahincrby(*args, **kwargs)
 
     @omit_exception
+    def hincrbyfloat(self, *args, **kwargs) -> float:
+        return self.client.hincrbyfloat(*args, **kwargs)
+
+    @omit_exception
+    async def ahincrbyfloat(self, *args, **kwargs) -> float:
+        return await self.client.ahincrbyfloat(*args, **kwargs)
+
+    @omit_exception
     def hlen(self, *args, **kwargs) -> int:
         return self.client.hlen(*args, **kwargs)
 
