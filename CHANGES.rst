@@ -1,3 +1,13 @@
+Version 1.0.0
+-------------
+
+Breaking change:
+- floats are no longer serialized when passing to valkey (in theory shouldn't break anything)
+
+New features:
+- Added the missing hash methods, now all hash methods are supported except for ``hmset`` which is deprecated.
+- hset: added ``mapping`` and ``items`` parameters for bulk operations.
+
 Version 0.1.8
 -------------
 
