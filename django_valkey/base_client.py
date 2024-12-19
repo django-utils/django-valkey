@@ -667,55 +667,46 @@ class BaseClient(Generic[Backend]):
 
     def _incr(
         self,
-        key: KeyT,
-        delta: int = 1,
+        key,
+        amount: int = 1,
         version: int | None = None,
-        client: Backend | Any | None = None,
         ignore_key_check: bool = False,
-    ) -> int:
+        client: Backend | None = None,
+        _operation="incr",
+    ):
         client = self._get_client(write=True, client=client)
-
+        op = client.incrby if _operation == "incr" else client.decrby
         key = self.make_key(key, version=version)
-
         try:
-            try:
-                # if key expired after exists check, then we get
-                # key with wrong value and ttl -1.
-                # use lua script for atomicity
-                if not ignore_key_check:
-                    lua = """
-                    local exists = server.call('EXISTS', KEYS[1])
-                    if (exists == 1) then
-                        return server.call('INCRBY', KEYS[1], ARGV[1])
-                    else return false end
-                    """
+            if ignore_key_check:
+                value = op(key, amount)
+            else:
+                if client.exists(key):
+                    value = op(key, amount)
                 else:
-                    lua = """
-                    return server.call('INCRBY', KEYS[1], ARGV[1])
-                    """
-                value = client.eval(lua, 1, key, delta)
-                if value is None:
                     error_message = f"Key '{key!r}' not found"
                     raise ValueError(error_message)
-            except ResponseError as e:
-                # if cached value or total value is greater than 64-bit signed
-                # integer.
-                # elif int is encoded. so valkey sees the data as string.
-                # In these situations valkey will throw ResponseError
+        except ResponseError as e:
+            # if cached value or total value is greater than 64-bit signed
+            # integer.
+            # elif int is encoded. so valkey sees the data as string.
+            # In these situations valkey will throw ResponseError
 
-                # try to keep TTL of key
-                timeout = self.ttl(key, version=version, client=client)
+            # try to keep TTL of key
+            timeout = self.ttl(key, version=version, client=client)
 
-                # returns -2 if the key does not exist
-                # means, that key have expired
-                if timeout == -2:
-                    error_message = f"Key '{key!r}' not found"
-                    raise ValueError(error_message) from e
-                value = self.get(key, version=version, client=client) + delta
-                self.set(key, value, version=version, timeout=timeout, client=client)
+            # returns -2 if the key does not exist
+            # means, that key have expired
+            if timeout == -2:
+                error_message = f"Key '{key!r}' not found"
+                raise ValueError(error_message) from e
+            if _operation == "incr":
+                value = self.get(key, version=version, client=client) + amount
+            else:
+                value = self.get(key, version=version, client=client) - amount
+            self.set(key, value, version=version, timeout=timeout, client=client)
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
-
         return value
 
     def incr(
@@ -733,10 +724,11 @@ class BaseClient(Generic[Backend]):
         """
         return self._incr(
             key=key,
-            delta=delta,
+            amount=delta,
             version=version,
             client=client,
             ignore_key_check=ignore_key_check,
+            _operation="incr",
         )
 
     def decr(
@@ -750,7 +742,9 @@ class BaseClient(Generic[Backend]):
         Decrease delta to value in the cache. If the key does not exist, raise a
         ValueError exception.
         """
-        return self._incr(key=key, delta=-delta, version=version, client=client)
+        return self._incr(
+            key=key, amount=delta, version=version, client=client, _operation="decr"
+        )
 
     def ttl(
         self, key: KeyT, version: int | None = None, client: Backend | Any | None = None

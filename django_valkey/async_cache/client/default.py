@@ -533,50 +533,41 @@ class AsyncDefaultClient(BaseClient[AValkey]):
     async def _incr(
         self,
         key,
-        delta: int = 1,
+        amount: int = 1,
         version: int | None = None,
-        client: AValkey | Any | None = None,
-        ignoree_key_check: bool = False,
-    ) -> int:
+        ignore_key_check: bool = False,
+        client: AValkey | None = None,
+        _operation="incr",
+    ):
         client = await self._get_client(write=True, client=client)
+        op = client.incrby if _operation == "incr" else client.decrby
         key = await self.make_key(key, version=version)
-
         try:
-            try:
-                # if key expired after exists check, then we get
-                # key with wrong value and ttl -1.
-                # use lua script for atomicity
-                if not ignoree_key_check:
-                    lua = """
-                    local exists = server.call('EXISTS', KEYS[1])
-                    if (exists == 1) then
-                        return server.call('INCRBY', KEYS[1], ARGV[1])
-                    else return false end
-                    """
+            if ignore_key_check:
+                value = await op(key, amount)
+            else:
+                if await client.exists(key):
+                    value = await op(key, amount)
                 else:
-                    lua = """
-                    return server.call('INCRBY', KEYS[1], ARGV[1])
-                    """
-                value = await client.eval(lua, 1, key, delta)
-                if value is None:
                     error_message = f"Key '{key!r}' not found"
                     raise ValueError(error_message)
-            except ResponseError as e:
-                # if cached value or total value is greater than 64-bit signed
-                # integer.
-                # elif int is encoded. so valkey sees the data as string.
-                # In these situations valkey will throw ResponseError
+        except ResponseError as e:
+            # if cached value or total value is greater than 64-bit signed
+            # integer.
+            # elif int is encoded. so valkey sees the data as string.
+            # In these situations valkey will throw ResponseError
 
-                # try to keep TTL of key
-                timeout = await self.ttl(key, version=version, client=client)
+            # try to keep TTL of key
+            timeout = await self.ttl(key, version=version, client=client)
 
-                if timeout == -2:
-                    error_message = f"Key '{key!r}' not found"
-                    raise ValueError(error_message) from e
-                value = await self.get(key, version=version, client=client) + delta
-                await self.set(
-                    key, value, version=version, timeout=timeout, client=client
-                )
+            if timeout == -2:
+                error_message = f"Key '{key!r}' not found"
+                raise ValueError(error_message) from e
+            if _operation == "incr":
+                value = await self.get(key, version=version, client=client) + amount
+            else:
+                value = await self.get(key, version=version, client=client) - amount
+            await self.set(key, value, version=version, timeout=timeout, client=client)
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
@@ -600,7 +591,8 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             delta,
             version=version,
             client=client,
-            ignoree_key_check=ignore_key_check,
+            ignore_key_check=ignore_key_check,
+            _operation="incr",
         )
 
     aincr = incr
@@ -611,12 +603,20 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         delta: int = 1,
         version: int | None = None,
         client: AValkey | Any | None = None,
+        ignore_key_check: bool = False,
     ) -> int:
         """
         Decrease delta to value in the cache. If the key does not exist, raise a
         ValueError exception.
         """
-        return await self._incr(key, delta=-delta, version=version, client=client)
+        return await self._incr(
+            key,
+            amount=delta,
+            version=version,
+            client=client,
+            ignore_key_check=ignore_key_check,
+            _operation="decr",
+        )
 
     adecr = decr
 
