@@ -65,6 +65,7 @@ django-coverage-plugin = "^3.1.0"
 pytest-asyncio = "^0.24.0"
 pre-commit = "^4.0.1"
 invoke = "^2.2.0"
+django-cmd = "^2.2"
 
 
 [tool.poetry.group.docs.dependencies]
@@ -100,3 +101,6 @@ parallel = true
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401", "F403"]
+
+[tool.django]
+settings_module = "tests.settings.sqlite"
