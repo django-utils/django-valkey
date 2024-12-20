@@ -40,6 +40,8 @@ class AsyncValkeyCache(BaseValkeyCache[AsyncDefaultClient, AValkey]):
 
     sinter = BaseValkeyCache.asinter
 
+    sintercard = BaseValkeyCache.asintercard
+
     sinterstore = BaseValkeyCache.asinterstore
 
     sismember = BaseValkeyCache.asismember

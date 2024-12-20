@@ -809,6 +809,20 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
     asinter = sinter
 
+    async def sintercard(
+        self,
+        numkeys: int,
+        keys: Iterable[str],
+        limit: int = 0,
+        version: int | None = None,
+        client: AValkey | None = None,
+    ) -> int:
+        client = await self._get_client(write=False, client=client)
+        nkeys = [await self.make_key(key, version=version) for key in keys]
+        return await client.sintercard(numkeys, keys=nkeys, limit=limit)
+
+    asintercard = sintercard
+
     async def sinterstore(
         self,
         dest,

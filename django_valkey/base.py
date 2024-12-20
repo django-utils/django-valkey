@@ -243,6 +243,14 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.asinter(*args, **kwargs)
 
     @omit_exception
+    def sintercard(self, *args, **kwargs) -> int:
+        return self.client.sintercard(*args, **kwargs)
+
+    @omit_exception
+    async def asintercard(self, *args, **kwargs) -> int:
+        return await self.client.asintercard(*args, **kwargs)
+
+    @omit_exception
     def sinterstore(self, *args, **kwargs) -> int:
         return self.client.sinterstore(*args, **kwargs)
 

@@ -937,6 +937,18 @@ class BaseClient(Generic[Backend]):
         nkeys = [self.make_key(key, version=version) for key in keys]
         return {self.decode(value) for value in client.sinter(*nkeys)}
 
+    def sintercard(
+        self,
+        numkeys: int,
+        keys: Iterable[str],
+        limit: int = 0,
+        version: int | None = None,
+        client: Backend | None = None,
+    ) -> int:
+        client = self._get_client(write=False, client=client)
+        nkeys = [self.make_key(key, version=version) for key in keys]
+        return client.sintercard(numkeys, keys=nkeys, limit=limit)
+
     def sinterstore(
         self,
         dest: KeyT,
