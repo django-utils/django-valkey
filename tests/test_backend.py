@@ -1089,6 +1089,15 @@ class TestDjangoValkeyCache:
         cache.sadd("foo2", "bar2", "bar3")
         assert cache.sinter("foo1", "foo2") == {"bar2"}
 
+    def test_sintercard(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support get_client")
+
+        cache.sadd("foo1", "a", "b", "c", "d")
+        cache.sadd("foo2", "c", "d", "e")
+        assert cache.sintercard(2, keys=["foo1", "foo2"]) == 2
+        assert cache.sintercard(2, keys=("foo1", "foo2"), limit=1) == 1
+
     def test_interstore(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
             pytest.skip("ShardClient doesn't support get_client")

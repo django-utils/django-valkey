@@ -1075,6 +1075,12 @@ class TestAsyncDjangoValkeyCache:
         await cache.asadd("foo2", "bar2", "bar3")
         assert await cache.asinter("foo1", "foo2") == {"bar2"}
 
+    async def test_sintercard(self, cache: AsyncValkeyCache):
+        await cache.asadd("foo1", "a", "b", "c", "d")
+        await cache.asadd("foo2", "c", "d", "e")
+        assert await cache.asintercard(2, keys=["foo1", "foo2"]) == 2
+        assert await cache.asintercard(2, keys=("foo1", "foo2"), limit=1) == 1
+
     async def test_interstore(self, cache: AsyncValkeyCache):
         # if isinstance(cache.client, ShardClient):
         #     pytest.skip("ShardClient doesn't support get_client")
