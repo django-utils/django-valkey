@@ -14,6 +14,8 @@ class AsyncValkeyCache(BaseValkeyCache[AsyncDefaultClient, AValkey]):
 
     iter_keys = BaseValkeyCache.aiter_keys
 
+    scan = BaseValkeyCache.ascan
+
     ttl = BaseValkeyCache.attl
 
     pttl = BaseValkeyCache.apttl

@@ -203,6 +203,14 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.akeys(*args, **kwargs)
 
     @omit_exception
+    def scan(self, *args, **kwargs) -> tuple[int, list[str]]:
+        return self.client.scan(*args, **kwargs)
+
+    @omit_exception
+    async def ascan(self, *args, **kwargs) -> tuple[int, list[str]]:
+        return await self.client.ascan(*args, **kwargs)
+
+    @omit_exception
     def sadd(self, *args, **kwargs) -> int:
         return self.client.sadd(*args, **kwargs)
 

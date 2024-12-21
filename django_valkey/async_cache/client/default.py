@@ -719,6 +719,35 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
     akeys = keys
 
+    async def scan(
+        self,
+        cursor: int = 0,
+        match: PatternT | None = None,
+        count: int | None = None,
+        _type: str | None = None,
+        version: int | None = None,
+        client: AValkey | None = None,
+    ) -> tuple[int, list[str]]:
+        if self._has_compression_enabled() and match:
+            raise ValueError("Using match with compression enables is not supported")
+        client = await self._get_client(write=False, client=client)
+
+        try:
+            cursor, result = await client.scan(
+                cursor=cursor,
+                match=(
+                    await self.make_pattern(match, version=version) if match else None
+                ),
+                count=count,
+                _type=_type,
+            )
+        except _main_exceptions as e:
+            raise ConnectionInterrupted(connection=client) from e
+
+        return cursor, [self.reverse_key(val.decode()) for val in result]
+
+    ascan = scan
+
     async def make_key(
         self, key, version: int | None = None, prefix: str | None = None
     ):
