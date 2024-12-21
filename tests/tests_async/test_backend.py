@@ -799,6 +799,20 @@ class TestAsyncDjangoValkeyCache:
         assert await client.get_client(write=True) == "Foo"
         assert await client.get_client(write=False) == "Bar"
 
+    async def test_scan(self, cache: AsyncValkeyCache):
+        await cache.aset("foo", "bar")
+        cursor, result = await cache.ascan()
+        assert result == ["foo"]
+        assert cursor == 0
+
+    async def test_scan_with_match(self, cache: AsyncValkeyCache):
+        if cache.client._has_compression_enabled():
+            pytest.skip("Compression is enabled, scan match is not supported")
+
+        await cache.aset("foo", "bar")
+        _, result = await cache.ascan(match="f*")
+        assert result == ["foo"]
+
     async def test_primary_replica_switching_with_index(self, cache: AsyncValkeyCache):
         # if isinstance(cache.client, ShardClient):
         #     pytest.skip("ShardClient doesn't support get_client")

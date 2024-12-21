@@ -765,6 +765,25 @@ class TestDjangoValkeyCache:
         next_value = next(result)
         assert next_value is not None
 
+    def test_scan(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support scan")
+
+        cache.set("foo", "bar")
+        cursor, result = cache.scan()
+        assert result == ["foo"]
+        assert cursor == 0
+
+    def test_scan_with_match(self, cache: ValkeyCache):
+        if cache.client._has_compression_enabled():
+            pytest.skip("Compression is enabled, scan match is not supported")
+        if isinstance(cache.client, ShardClient):
+            pytest.skip("ShardClient doesn't support scan")
+
+        cache.set("foo", "bar")
+        _, result = cache.scan(match="f*")
+        assert result == ["foo"]
+
     def test_primary_replica_switching(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
             pytest.skip("ShardClient doesn't support get_client")
