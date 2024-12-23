@@ -1082,11 +1082,13 @@ class BaseClient(Generic[Backend]):
     def sscan(
         self,
         key: KeyT,
+        cursor: int = 0,
         match: str | None = None,
         count: int = 10,
         version: int | None = None,
         client: Backend | Any | None = None,
-    ) -> Set[Any]:
+        return_set: bool = True,
+    ) -> tuple[int, Set[Any]] | tuple[int, list[Any]]:
         if self._has_compression_enabled() and match:
             err_msg = "Using match with compression is not supported."
             raise ValueError(err_msg)
@@ -1096,11 +1098,12 @@ class BaseClient(Generic[Backend]):
         key = self.make_key(key, version=version)
 
         cursor, result = client.sscan(
-            key,
+            name=key,
+            cursor=cursor,
             match=cast(PatternT, self.encode(match)) if match else None,
             count=count,
         )
-        return {self.decode(value) for value in result}
+        return cursor, self._decode_iterable_result(result, convert_to_set=return_set)
 
     def sscan_iter(
         self,

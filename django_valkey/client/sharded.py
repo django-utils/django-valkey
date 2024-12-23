@@ -510,16 +510,24 @@ class ShardClient(DefaultClient):
     def sscan(
         self,
         key: KeyT,
+        cursor: int = 0,
         match: str | None = None,
         count: int = 10,
         version: int | None = None,
         client: Valkey | Any | None = None,
-    ) -> Set[Any]:
+        return_set: bool = True,
+    ) -> tuple[int, Set[Any]] | tuple[int, list[Any]]:
         if client is None:
             key = self.make_key(key, version=version)
             client = self.get_server(key)
         return super().sscan(
-            key=key, match=match, count=count, version=version, client=client
+            key=key,
+            cursor=cursor,
+            match=match,
+            count=count,
+            version=version,
+            client=client,
+            return_set=return_set,
         )
 
     def sscan_iter(

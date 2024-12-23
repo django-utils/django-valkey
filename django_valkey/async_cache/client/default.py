@@ -970,11 +970,13 @@ class AsyncDefaultClient(BaseClient[AValkey]):
     async def sscan(
         self,
         key,
+        cursor: int = 0,
         match: str | None = None,
         count: int = 10,
         version: int | None = None,
         client: AValkey | Any | None = None,
-    ) -> Set[Any]:
+        return_set: bool = True,
+    ) -> tuple[int, Set[Any]] | tuple[int, list[Any]]:
         # TODO check this is correct
         if self._has_compression_enabled() and match:
             error_message = "Using match with compression is not supported."
@@ -984,11 +986,14 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         key = await self.make_key(key, version=version)
         cursor, result = await client.sscan(
-            key,
+            name=key,
+            cursor=cursor,
             match=cast(PatternT, await self.encode(match)) if match else None,
             count=count,
         )
-        return {await self.decode(value) for value in result}
+        return cursor, await self._decode_iterable_result(
+            result, convert_to_set=return_set
+        )
 
     asscan = sscan
 
