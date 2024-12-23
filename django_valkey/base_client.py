@@ -553,7 +553,7 @@ class BaseClient(Generic[Backend]):
 
     def _decode_iterable_result(
         self, result: Any, convert_to_set: bool = True
-    ) -> List[Any] | Any | None:
+    ) -> list[Any] | Set[Any] | Any | None:
         if result is None:
             return None
         if isinstance(result, list):
@@ -931,11 +931,14 @@ class BaseClient(Generic[Backend]):
         *keys: KeyT,
         version: int | None = None,
         client: Backend | Any | None = None,
-    ) -> Set[Any]:
+        return_set: bool = True,
+    ) -> Set[Any] | list[Any]:
         client = self._get_client(write=False, client=client)
 
         nkeys = [self.make_key(key, version=version) for key in keys]
-        return {self.decode(value) for value in client.sdiff(*nkeys)}
+        return self._decode_iterable_result(
+            client.sdiff(*nkeys), convert_to_set=return_set
+        )
 
     def sdiffstore(
         self,
@@ -956,11 +959,14 @@ class BaseClient(Generic[Backend]):
         *keys: KeyT,
         version: int | None = None,
         client: Backend | Any | None = None,
-    ) -> Set[Any]:
+        return_set: bool = True,
+    ) -> Set[Any] | list[Any]:
         client = self._get_client(write=False, client=client)
 
         nkeys = [self.make_key(key, version=version) for key in keys]
-        return {self.decode(value) for value in client.sinter(*nkeys)}
+        return self._decode_iterable_result(
+            client.sinter(*nkeys), convert_to_set=return_set
+        )
 
     def sintercard(
         self,
@@ -993,12 +999,11 @@ class BaseClient(Generic[Backend]):
         *members: Any,
         version: int | None = None,
         client: Backend | Any | None = None,
-    ) -> List[bool]:
+    ) -> list[bool]:
         client = self._get_client(write=False, client=client)
 
         key = self.make_key(key, version=version)
         encoded_members = [self.encode(member) for member in members]
-
         return [bool(value) for value in client.smismember(key, *encoded_members)]
 
     def sismember(
@@ -1019,11 +1024,14 @@ class BaseClient(Generic[Backend]):
         key: KeyT,
         version: int | None = None,
         client: Backend | Any | None = None,
-    ) -> Set[Any]:
+        return_set: bool = True,
+    ) -> Set[Any] | list[Any]:
         client = self._get_client(write=False, client=client)
 
         key = self.make_key(key, version=version)
-        return {self.decode(value) for value in client.smembers(key)}
+        return self._decode_iterable_result(
+            client.smembers(key), convert_to_set=return_set
+        )
 
     def smove(
         self,
@@ -1046,12 +1054,13 @@ class BaseClient(Generic[Backend]):
         count: int | None = None,
         version: int | None = None,
         client: Backend | Any | None = None,
-    ) -> Set | Any:
+        return_set: bool = True,
+    ) -> Set | list | Any:
         client = self._get_client(write=True, client=client)
 
         nkey = self.make_key(key, version=version)
         result = client.spop(nkey, count)
-        return self._decode_iterable_result(result)
+        return self._decode_iterable_result(result, convert_to_set=return_set)
 
     def srandmember(
         self,
@@ -1059,12 +1068,13 @@ class BaseClient(Generic[Backend]):
         count: int | None = None,
         version: int | None = None,
         client: Backend | Any | None = None,
-    ) -> List | Any:
+        return_set: bool = True,
+    ) -> list | Any:
         client = self._get_client(write=False, client=client)
 
         key = self.make_key(key, version=version)
         result = client.srandmember(key, count)
-        return self._decode_iterable_result(result, convert_to_set=False)
+        return self._decode_iterable_result(result, convert_to_set=return_set)
 
     def srem(
         self,
@@ -1132,11 +1142,14 @@ class BaseClient(Generic[Backend]):
         *keys: KeyT,
         version: int | None = None,
         client: Backend | Any | None = None,
-    ) -> Set[Any]:
+        return_set: bool = True,
+    ) -> Set[Any] | list[Any]:
         client = self._get_client(write=False, client=client)
 
         nkeys = [self.make_key(key, version=version) for key in keys]
-        return {self.decode(value) for value in client.sunion(*nkeys)}
+        return self._decode_iterable_result(
+            client.sunion(*nkeys), convert_to_set=return_set
+        )
 
     def sunionstore(
         self,

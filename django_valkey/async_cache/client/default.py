@@ -806,11 +806,17 @@ class AsyncDefaultClient(BaseClient[AValkey]):
     ascard = scard
 
     async def sdiff(
-        self, *keys, version: int | None = None, client: AValkey | Any | None = None
-    ) -> Set[Any]:
+        self,
+        *keys,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+        return_set: bool = True,
+    ) -> Set[Any] | list[Any]:
         client = await self._get_client(write=False, client=client)
         nkeys = [await self.make_key(key, version=version) for key in keys]
-        return {await self.decode(value) for value in await client.sdiff(*nkeys)}
+        return await self._decode_iterable_result(
+            await client.sdiff(*nkeys), convert_to_set=return_set
+        )
 
     asdiff = sdiff
 
@@ -830,11 +836,17 @@ class AsyncDefaultClient(BaseClient[AValkey]):
     asdiffstore = sdiffstore
 
     async def sinter(
-        self, *keys, version: int | None = None, client: AValkey | Any | None = None
+        self,
+        *keys,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+        return_set: bool = True,
     ) -> Set[Any]:
         client = await self._get_client(write=False, client=client)
         nkeys = [await self.make_key(key, version=version) for key in keys]
-        return {await self.decode(value) for value in await client.sinter(*nkeys)}
+        return await self._decode_iterable_result(
+            await client.sinter(*nkeys), convert_to_set=return_set
+        )
 
     asinter = sinter
 
@@ -899,12 +911,18 @@ class AsyncDefaultClient(BaseClient[AValkey]):
     asismember = sismember
 
     async def smembers(
-        self, key, version: int | None = None, client: AValkey | Any | None = None
-    ) -> Set[Any]:
+        self,
+        key,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+        return_set: bool = True,
+    ) -> Set[Any] | list[Any]:
         client = await self._get_client(write=False, client=client)
 
         key = await self.make_key(key, version=version)
-        return {await self.decode(value) for value in await client.smembers(key)}
+        return await self._decode_iterable_result(
+            await client.smembers(key), convert_to_set=return_set
+        )
 
     asmembers = smembers
 
@@ -930,11 +948,12 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         count: int | None = None,
         version: int | None = None,
         client: AValkey | Any | None = None,
-    ) -> Set | Any:
+        return_set: bool = True,
+    ) -> Set | list | Any:
         client = await self._get_client(write=True, client=client)
         nkey = await self.make_key(key, version=version)
         result = await client.spop(nkey, count)
-        return await self._decode_iterable_result(result)
+        return await self._decode_iterable_result(result, convert_to_set=return_set)
 
     aspop = spop
 
@@ -944,11 +963,12 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         count: int | None = None,
         version: int | None = None,
         client: AValkey | Any | None = None,
+        return_set: bool = True,
     ) -> list | Any:
         client = await self._get_client(write=False, client=client)
         key = await self.make_key(key, version=version)
         result = await client.srandmember(key, count)
-        return await self._decode_iterable_result(result, convert_to_set=False)
+        return await self._decode_iterable_result(result, convert_to_set=return_set)
 
     asrandmember = srandmember
 
@@ -1030,11 +1050,14 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         *keys,
         version: int | None = None,
         client: AValkey | Any | None = None,
-    ) -> Set[Any]:
+        retrun_set: bool = True,
+    ) -> Set[Any] | list[Any]:
         client = await self._get_client(write=False, client=client)
 
         nkeys = [await self.make_key(key, version=version) for key in keys]
-        return {await self.decode(value) for value in await client.sunion(*nkeys)}
+        return await self._decode_iterable_result(
+            await client.sunion(*nkeys), convert_to_set=retrun_set
+        )
 
     asunion = sunion
 

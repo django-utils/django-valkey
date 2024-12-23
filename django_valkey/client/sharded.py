@@ -468,11 +468,14 @@ class ShardClient(DefaultClient):
         key: KeyT,
         version: int | None = None,
         client: Valkey | Any | None = None,
-    ) -> Set[Any]:
+        return_set: bool = True,
+    ) -> Set[Any] | list[Any]:
         if client is None:
             key = self.make_key(key, version=version)
             client = self.get_server(key)
-        return super().smembers(key=key, version=version, client=client)
+        return super().smembers(
+            key=key, version=version, client=client, return_set=return_set
+        )
 
     def smove(
         self,
@@ -551,11 +554,14 @@ class ShardClient(DefaultClient):
         count: int | None = None,
         version: int | None = None,
         client: Valkey | Any | None = None,
-    ) -> Set | Any:
+        return_set: bool = True,
+    ) -> Set | list | Any:
         if client is None:
             key = self.make_key(key, version=version)
             client = self.get_server(key)
-        return super().srandmember(key=key, count=count, version=version, client=client)
+        return super().srandmember(
+            key=key, count=count, version=version, client=client, return_set=return_set
+        )
 
     def sismember(
         self,
@@ -575,11 +581,14 @@ class ShardClient(DefaultClient):
         count: int | None = None,
         version: int | None = None,
         client: Valkey | Any | None = None,
-    ) -> Set | Any:
+        return_set: bool = True,
+    ) -> Set | list | Any:
         if client is None:
             key = self.make_key(key, version=version)
             client = self.get_server(key)
-        return super().spop(key=key, count=count, version=version, client=client)
+        return super().spop(
+            key=key, count=count, version=version, client=client, return_set=return_set
+        )
 
     def smismember(
         self,
@@ -587,7 +596,7 @@ class ShardClient(DefaultClient):
         *members,
         version: int | None = None,
         client: Valkey | Any | None = None,
-    ) -> List[bool]:
+    ) -> list[bool]:
         if client is None:
             key = self.make_key(key, version=version)
             client = self.get_server(key)

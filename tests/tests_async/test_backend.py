@@ -1141,7 +1141,11 @@ class TestAsyncDjangoValkeyCache:
 
     async def test_srandmember(self, cache: AsyncValkeyCache):
         await cache.asadd("foo", "bar1", "bar2")
-        assert await cache.asrandmember("foo", 1) in [["bar1"], ["bar2"]]
+        assert await cache.asrandmember("foo", 1, return_set=False) in [
+            ["bar1"],
+            ["bar2"],
+        ]
+        assert await cache.asrandmember("foo", 1) in [{"bar1"}, {"bar2"}]
 
     async def test_srem(self, cache: AsyncValkeyCache):
         await cache.asadd("foo", "bar1", "bar2")
