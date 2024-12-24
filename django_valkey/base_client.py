@@ -1,15 +1,11 @@
+import builtins
+from collections.abc import Iterable, Iterator
 import random
 import re
 import socket
 from contextlib import suppress
 from typing import (
     Any,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Set,
-    Tuple,
     cast,
     TYPE_CHECKING,
     Generic,
@@ -21,13 +17,14 @@ from django.core.cache.backends.base import DEFAULT_TIMEOUT, get_key_func
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.module_loading import import_string
 from valkey.exceptions import ConnectionError, ResponseError, TimeoutError
-from valkey.typing import AbsExpiryT, EncodableT, ExpiryT, KeyT, PatternT
+from valkey.typing import AbsExpiryT, EncodableT, ExpiryT, PatternT
 
 from django_valkey import pool
 from django_valkey.compressors.identity import IdentityCompressor
 from django_valkey.exceptions import CompressorError, ConnectionInterrupted
 from django_valkey.serializers.pickle import PickleSerializer
 from django_valkey.util import CacheKey
+from django_valkey.typing import KeyT
 
 if TYPE_CHECKING:
     from valkey.lock import Lock
@@ -50,7 +47,7 @@ class BaseClient(Generic[Backend]):
     def __init__(
         self,
         server: str | Iterable,
-        params: Dict[str, Any],
+        params: dict[str, Any],
         backend: "ValkeyCache",
     ) -> None:
         self._backend = backend
@@ -68,7 +65,7 @@ class BaseClient(Generic[Backend]):
             or "django_valkey.util.default_reverse_key"
         )
 
-        self._clients: List[Backend | Any | None] = [None] * len(self._server)
+        self._clients: list[Backend | Any | None] = [None] * len(self._server)
         self._options: dict = params.get("OPTIONS", {})
         self._replica_read_only = self._options.get("REPLICA_READ_ONLY", True)
 
@@ -106,7 +103,7 @@ class BaseClient(Generic[Backend]):
         )
 
     def get_next_client_index(
-        self, write: bool = True, tried: List[int] | None = None
+        self, write: bool = True, tried: list[int] | None = None
     ) -> int:
         """
         Return a next index for read client. This function implements a default
@@ -135,7 +132,7 @@ class BaseClient(Generic[Backend]):
     def get_client(
         self,
         write: bool = True,
-        tried: List[int] | None = None,
+        tried: list[int] | None = None,
     ) -> Backend | Any:
         """
         Method used for obtain a raw valkey client.
@@ -154,8 +151,8 @@ class BaseClient(Generic[Backend]):
     def get_client_with_index(
         self,
         write: bool = True,
-        tried: List[int] | None = None,
-    ) -> Tuple[Backend | Any, int]:
+        tried: list[int] | None = None,
+    ) -> tuple[Backend | Any, int]:
         """
         Method used for obtain a raw valkey client.
 
@@ -211,7 +208,7 @@ class BaseClient(Generic[Backend]):
             timeout = self._backend.default_timeout
 
         original_client = client
-        tried: List[int] = []
+        tried: list[int] = []
         while True:
             try:
                 if client is None:
@@ -273,7 +270,7 @@ class BaseClient(Generic[Backend]):
         delta: int = 1,
         version: int | None = None,
         client: Backend | Any | None = None,
-    ) -> Tuple:
+    ) -> tuple:
         if version is None:
             version = self._backend.version
 
@@ -553,7 +550,7 @@ class BaseClient(Generic[Backend]):
 
     def _decode_iterable_result(
         self, result: Any, convert_to_set: bool = True
-    ) -> list[Any] | Set[Any] | Any | None:
+    ) -> list[Any] | builtins.set[Any] | Any | None:
         if result is None:
             return None
         if isinstance(result, list):
@@ -624,7 +621,7 @@ class BaseClient(Generic[Backend]):
 
     def set_many(
         self,
-        data: Dict[KeyT, EncodableT],
+        data: dict[KeyT, EncodableT],
         timeout: float | None = DEFAULT_TIMEOUT,
         version: int | None = None,
         client: Backend | Any | None = None,
@@ -648,7 +645,7 @@ class BaseClient(Generic[Backend]):
 
     def mset(
         self,
-        data: Dict[KeyT, Any],
+        data: dict[KeyT, Any],
         timeout: float | None = None,
         version: int | None = None,
         client: Backend | None = None,
@@ -830,7 +827,7 @@ class BaseClient(Generic[Backend]):
         search: str,
         version: int | None = None,
         client: Backend | Any | None = None,
-    ) -> List[Any]:
+    ) -> list[Any]:
         """
         Execute KEYS command and return matched results.
         Warning: this can return huge number of results, in
@@ -932,7 +929,7 @@ class BaseClient(Generic[Backend]):
         version: int | None = None,
         client: Backend | Any | None = None,
         return_set: bool = True,
-    ) -> Set[Any] | list[Any]:
+    ) -> builtins.set[Any] | list[Any]:
         client = self._get_client(write=False, client=client)
 
         nkeys = [self.make_key(key, version=version) for key in keys]
@@ -960,7 +957,7 @@ class BaseClient(Generic[Backend]):
         version: int | None = None,
         client: Backend | Any | None = None,
         return_set: bool = True,
-    ) -> Set[Any] | list[Any]:
+    ) -> builtins.set[Any] | list[Any]:
         client = self._get_client(write=False, client=client)
 
         nkeys = [self.make_key(key, version=version) for key in keys]
@@ -1025,7 +1022,7 @@ class BaseClient(Generic[Backend]):
         version: int | None = None,
         client: Backend | Any | None = None,
         return_set: bool = True,
-    ) -> Set[Any] | list[Any]:
+    ) -> builtins.set[Any] | list[Any]:
         client = self._get_client(write=False, client=client)
 
         key = self.make_key(key, version=version)
@@ -1055,7 +1052,7 @@ class BaseClient(Generic[Backend]):
         version: int | None = None,
         client: Backend | Any | None = None,
         return_set: bool = True,
-    ) -> Set | list | Any:
+    ) -> builtins.set | list | Any:
         client = self._get_client(write=True, client=client)
 
         nkey = self.make_key(key, version=version)
@@ -1098,7 +1095,7 @@ class BaseClient(Generic[Backend]):
         version: int | None = None,
         client: Backend | Any | None = None,
         return_set: bool = True,
-    ) -> tuple[int, Set[Any]] | tuple[int, list[Any]]:
+    ) -> tuple[int, builtins.set[Any]] | tuple[int, list[Any]]:
         if self._has_compression_enabled() and match:
             err_msg = "Using match with compression is not supported."
             raise ValueError(err_msg)
@@ -1143,7 +1140,7 @@ class BaseClient(Generic[Backend]):
         version: int | None = None,
         client: Backend | Any | None = None,
         return_set: bool = True,
-    ) -> Set[Any] | list[Any]:
+    ) -> builtins.set[Any] | list[Any]:
         client = self._get_client(write=False, client=client)
 
         nkeys = [self.make_key(key, version=version) for key in keys]
@@ -1369,7 +1366,7 @@ class BaseClient(Generic[Backend]):
         self,
         name: str,
         client: Backend | Any | None = None,
-    ) -> List[Any]:
+    ) -> list[Any]:
         """
         Return a list of keys in hash name.
         """

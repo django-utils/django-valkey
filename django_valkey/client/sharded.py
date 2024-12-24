@@ -1,16 +1,18 @@
+import builtins
+from collections.abc import Iterator
 import re
-from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import Any, Iterator, List, Set, Dict
+from typing import Any
 
 from valkey import Valkey
 from valkey.exceptions import ConnectionError
-from valkey.typing import EncodableT, KeyT
+from valkey.typing import EncodableT
 
 from django_valkey.base_client import DEFAULT_TIMEOUT
 from django_valkey.client.default import DefaultClient
 from django_valkey.exceptions import ConnectionInterrupted
 from django_valkey.hash_ring import HashRing
+from django_valkey.typing import KeyT
 
 
 class ShardClient(DefaultClient):
@@ -79,11 +81,11 @@ class ShardClient(DefaultClient):
         keys: KeyT,
         version: int | None = None,
         _client: Valkey | Any | None = None,
-    ) -> OrderedDict:
+    ) -> dict:
         if not keys:
-            return OrderedDict()
+            return {}
 
-        recovered_data = OrderedDict()
+        recovered_data = {}
 
         new_keys = [self.make_key(key, version=version) for key in keys]
         map_keys = dict(zip(new_keys, keys))
@@ -130,7 +132,7 @@ class ShardClient(DefaultClient):
 
     def set_many(
         self,
-        data: Dict[KeyT, EncodableT],
+        data: dict[KeyT, EncodableT],
         timeout: float | None = DEFAULT_TIMEOUT,
         version: int | None = None,
         client: Valkey | Any | None = None,
@@ -380,7 +382,7 @@ class ShardClient(DefaultClient):
         search: str,
         version: int | None = None,
         client: Valkey | Any | None = None,
-    ) -> List[str]:
+    ) -> list[str]:
         pattern = self.make_pattern(search, version=version)
         keys = []
         try:
@@ -469,7 +471,7 @@ class ShardClient(DefaultClient):
         version: int | None = None,
         client: Valkey | Any | None = None,
         return_set: bool = True,
-    ) -> Set[Any] | list[Any]:
+    ) -> builtins.set[Any] | list[Any]:
         if client is None:
             key = self.make_key(key, version=version)
             client = self.get_server(key)
@@ -519,7 +521,7 @@ class ShardClient(DefaultClient):
         version: int | None = None,
         client: Valkey | Any | None = None,
         return_set: bool = True,
-    ) -> tuple[int, Set[Any]] | tuple[int, list[Any]]:
+    ) -> tuple[int, builtins.set[Any]] | tuple[int, list[Any]]:
         if client is None:
             key = self.make_key(key, version=version)
             client = self.get_server(key)
@@ -555,7 +557,7 @@ class ShardClient(DefaultClient):
         version: int | None = None,
         client: Valkey | Any | None = None,
         return_set: bool = True,
-    ) -> Set | list | Any:
+    ) -> builtins.set | list | Any:
         if client is None:
             key = self.make_key(key, version=version)
             client = self.get_server(key)
@@ -582,7 +584,7 @@ class ShardClient(DefaultClient):
         version: int | None = None,
         client: Valkey | Any | None = None,
         return_set: bool = True,
-    ) -> Set | list | Any:
+    ) -> builtins.set | list | Any:
         if client is None:
             key = self.make_key(key, version=version)
             client = self.get_server(key)

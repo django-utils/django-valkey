@@ -1,13 +1,15 @@
+import builtins
+from collections.abc import Iterable, AsyncIterable
 import contextlib
 from contextlib import suppress
-from typing import Any, Set, cast, TYPE_CHECKING, AsyncGenerator, Dict, Iterable
+from typing import Any, cast, TYPE_CHECKING
 
 from django.conf import settings
 from django.core.cache.backends.base import DEFAULT_TIMEOUT
 
 from valkey.asyncio import Valkey as AValkey
 from valkey.exceptions import ResponseError
-from valkey.typing import PatternT, KeyT
+from valkey.typing import PatternT
 
 from django_valkey.base_client import (
     BaseClient,
@@ -16,6 +18,7 @@ from django_valkey.base_client import (
 )
 from django_valkey.exceptions import CompressorError, ConnectionInterrupted
 from django_valkey.util import CacheKey
+from django_valkey.typing import KeyT
 
 if TYPE_CHECKING:
     from valkey.asyncio.lock import Lock
@@ -29,7 +32,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
     async def _decode_iterable_result(
         self, result: Any, convert_to_set: bool = True
-    ) -> list[Any] | Set[Any] | Any | None:
+    ) -> list[Any] | builtins.set[Any] | Any | None:
         if result is None:
             return None
         if isinstance(result, list):
@@ -507,7 +510,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
     async def mset(
         self,
-        data: Dict[KeyT, Any],
+        data: dict[KeyT, Any],
         timeout: float | None = None,
         version: int | None = None,
         client: AValkey | None = None,
@@ -684,7 +687,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         itersize: int | None = None,
         client: AValkey | Any | None = None,
         version: int | None = None,
-    ) -> AsyncGenerator:
+    ) -> AsyncIterable[KeyT]:
         """
         Same as keys, but uses cursors
         for make memory efficient keys iteration.
@@ -807,7 +810,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         version: int | None = None,
         client: AValkey | Any | None = None,
         return_set: bool = True,
-    ) -> Set[Any] | list[Any]:
+    ) -> builtins.set[Any] | list[Any]:
         client = await self._get_client(write=False, client=client)
         nkeys = [await self.make_key(key, version=version) for key in keys]
         return await self._decode_iterable_result(
@@ -837,7 +840,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         version: int | None = None,
         client: AValkey | Any | None = None,
         return_set: bool = True,
-    ) -> Set[Any]:
+    ) -> builtins.set[Any]:
         client = await self._get_client(write=False, client=client)
         nkeys = [await self.make_key(key, version=version) for key in keys]
         return await self._decode_iterable_result(
@@ -912,7 +915,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         version: int | None = None,
         client: AValkey | Any | None = None,
         return_set: bool = True,
-    ) -> Set[Any] | list[Any]:
+    ) -> builtins.set[Any] | list[Any]:
         client = await self._get_client(write=False, client=client)
 
         key = await self.make_key(key, version=version)
@@ -945,7 +948,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         version: int | None = None,
         client: AValkey | Any | None = None,
         return_set: bool = True,
-    ) -> Set | list | Any:
+    ) -> builtins.set | list | Any:
         client = await self._get_client(write=True, client=client)
         nkey = await self.make_key(key, version=version)
         result = await client.spop(nkey, count)
@@ -992,7 +995,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         version: int | None = None,
         client: AValkey | Any | None = None,
         return_set: bool = True,
-    ) -> tuple[int, Set[Any]] | tuple[int, list[Any]]:
+    ) -> tuple[int, builtins.set[Any]] | tuple[int, list[Any]]:
         # TODO check this is correct
         if self._has_compression_enabled() and match:
             error_message = "Using match with compression is not supported."
@@ -1020,7 +1023,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         count: int = 10,
         version: int | None = None,
         client: AValkey | Any | None = None,
-    ):
+    ) -> AsyncIterable[Any]:
         if self._has_compression_enabled() and match:
             error_message = "Using match with compression is not supported."
             raise ValueError(error_message)
@@ -1047,7 +1050,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         version: int | None = None,
         client: AValkey | Any | None = None,
         retrun_set: bool = True,
-    ) -> Set[Any] | list[Any]:
+    ) -> builtins.set[Any] | list[Any]:
         client = await self._get_client(write=False, client=client)
 
         nkeys = [await self.make_key(key, version=version) for key in keys]
