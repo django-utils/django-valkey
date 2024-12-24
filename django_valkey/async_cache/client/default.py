@@ -24,12 +24,8 @@ if TYPE_CHECKING:
 class AsyncDefaultClient(BaseClient[AValkey]):
     CONNECTION_FACTORY_PATH = "django_valkey.async_cache.pool.AsyncConnectionFactory"
 
-    def __contains__(self, item) -> bool:
-        c = yield from self.__contains(item)
-        return c
-
-    async def __contains(self, key) -> bool:
-        yield await self.has_key(key)
+    def __contains__(self, item):
+        raise NotImplementedError("async client doesn't support __contain__")
 
     async def _decode_iterable_result(
         self, result: Any, convert_to_set: bool = True
