@@ -18,6 +18,7 @@ from django_valkey.compressors.identity import IdentityCompressor
 from django_valkey.serializers.json import JSONSerializer
 from django_valkey.serializers.msgpack import MSGPackSerializer
 from django_valkey.serializers.pickle import PickleSerializer
+from django_valkey.server.sync_server import ValkeyServer
 
 
 @pytest.fixture
@@ -1294,3 +1295,24 @@ class TestDjangoValkeyCache:
         cache.sadd("foo2", "bar2", "bar3")
         assert cache.sunionstore("foo3", "foo1", "foo2") == 3
         assert cache.smembers("foo3") == {"bar1", "bar2", "bar3"}
+
+
+class TestDjangoValkey:
+    # since the server interface uses the same methods as cache backend,
+    # repeating tests is not necessary,
+    # only test to make sure it works
+    def test_backend(self, valkey: ValkeyServer):
+        assert (
+            valkey._connections.settings["default"]["BACKEND"]
+            == "django_valkey.server.sync_server.ValkeyServer"
+        )
+
+    def test_set_add(self, valkey: ValkeyServer):
+        valkey.set("add_key", "Initial value")
+        res = valkey.add("add_key", "New value")
+        assert res is None
+
+        res = valkey.get("add_key")
+        assert res == "Initial value"
+        res = valkey.add("other_key", "New value")
+        assert res is True

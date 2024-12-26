@@ -44,6 +44,20 @@ CACHES = {
     },
 }
 
+
+VALKEY = {
+    "default": {
+        "BACKEND": "django_valkey.server.async_server.AsyncValkeyServer",
+        "LOCATION": ["valkey://mymaster?db=5"],
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_valkey.server.async_server.client.AsyncSentinelClient",
+            "SENTINELS": SENTINELS,
+            "CONNECTION_FACTORY": conn_factory,
+        },
+    }
+}
+
+
 INSTALLED_APPS = ["django.contrib.sessions"]
 
 USE_TZ = False

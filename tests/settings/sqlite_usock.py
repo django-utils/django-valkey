@@ -24,6 +24,16 @@ CACHES = {
     },
 }
 
+VALKEY = {
+    "default": {
+        "BACKEND": "django_valkey.server.sync_server.ValkeyServer",
+        "LOCATION": ["unix:///tmp/valkey.sock?db=1", "unix:///tmp/valkey.sock?db=1"],
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_valkey.server.sync_server.client.DefaultClient",
+        },
+    }
+}
+
 INSTALLED_APPS = ["django.contrib.sessions"]
 
 USE_TZ = False

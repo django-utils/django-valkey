@@ -23,6 +23,16 @@ CACHES = {
     },
 }
 
+VALKEY = {
+    "default": {
+        "BACKEND": "django_valkey.server.sync_server.ValkeyServer",
+        "LOCATION": ["valkey://127.0.0.1:6379?db=1", "valkey://127.0.0.1:6379?db=1"],
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_valkey.server.sync_server.client.DefaultClient"
+        },
+    }
+}
+
 # Include `django.contrib.auth` and `django.contrib.contenttypes` for mypy /
 # django-stubs.
 

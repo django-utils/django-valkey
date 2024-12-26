@@ -20,6 +20,7 @@ from django_valkey.compressors.identity import IdentityCompressor
 from django_valkey.serializers.pickle import PickleSerializer
 from django_valkey.serializers.json import JSONSerializer
 from django_valkey.serializers.msgpack import MSGPackSerializer
+from django_valkey.server.async_server import AsyncValkeyServer
 
 
 @pytest_asyncio.fixture(loop_scope="session")
@@ -1214,3 +1215,25 @@ class TestAsyncDjangoValkeyCache:
         await cache.asadd("foo2", "bar2", "bar3")
         assert await cache.asunionstore("foo3", "foo1", "foo2") == 3
         assert await cache.asmembers("foo3") == {"bar1", "bar2", "bar3"}
+
+
+@pytest.mark.asyncio(loop_scope="session")
+class TestAsyncDjangoValkey:
+    # since the server interface uses the same methods as cache backend,
+    # repeating tests is not necessary,
+    # only test to make sure it works
+    async def test_backend(self, valkey: AsyncValkeyServer):
+        assert (
+            valkey._connections.settings["default"]["BACKEND"]
+            == "django_valkey.server.async_server.AsyncValkeyServer"
+        )
+
+    async def test_set_add(self, valkey: AsyncValkeyServer):
+        await valkey.aset("add_key", "Initial value")
+        res = await valkey.aadd("add_key", "New value")
+        assert res is None
+
+        res = await valkey.aget("add_key")
+        assert res == "Initial value"
+        res = await valkey.aadd("other_key", "New value")
+        assert res is True
