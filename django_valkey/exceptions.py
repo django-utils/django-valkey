@@ -1,3 +1,6 @@
+from django.core.exceptions import ImproperlyConfigured
+
+
 class ConnectionInterrupted(Exception):
     def __init__(self, connection, parent=None):
         self.connection = connection
@@ -9,4 +12,8 @@ class ConnectionInterrupted(Exception):
 
 
 class CompressorError(Exception):
+    pass
+
+
+class InvalidValkeyBackendError(ImproperlyConfigured):
     pass
