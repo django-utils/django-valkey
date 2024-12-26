@@ -1,7 +1,6 @@
 import base64
 import unittest
 from datetime import timedelta
-from typing import Optional, Type
 
 import django
 import pytest
@@ -14,7 +13,7 @@ from django.utils import timezone
 
 from django_valkey.serializers.msgpack import MSGPackSerializer
 
-SessionType = Type[SessionBase]
+SessionType = type[SessionBase]
 
 
 # Copied from Django's sessions test suite. Keep in sync with upstream.
@@ -24,7 +23,7 @@ class SessionTestsMixin:
     # class, which wouldn't work, and to allow different TestCase subclasses to
     # be used.
 
-    backend: Optional[SessionType] = None  # subclasses must specify
+    backend: SessionType | None = None  # subclasses must specify
 
     def setUp(self):
         self.session = self.backend()

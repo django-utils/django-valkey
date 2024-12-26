@@ -1,9 +1,10 @@
 import asyncio
+from collections.abc import AsyncIterable
 import contextlib
 import datetime
 from datetime import timedelta
 import threading
-from typing import Iterable, List, cast
+from typing import cast
 from unittest.mock import patch, AsyncMock
 
 import pytest
@@ -24,7 +25,7 @@ from django_valkey.server.async_server import AsyncValkeyServer
 
 
 @pytest_asyncio.fixture(loop_scope="session")
-async def patch_itersize_setting() -> Iterable[None]:
+async def patch_itersize_setting() -> AsyncIterable[None]:
     del caches["default"]
     with override_settings(DJANGO_VALKEY_SCAN_ITERSIZE=30):
         yield
@@ -336,7 +337,7 @@ class TestAsyncDjangoValkeyCache:
         assert res == 0
 
     async def test_delete_many_empty_generator(self, cache: AsyncValkeyCache):
-        res = await cache.adelete_many(key for key in cast(List[str], []))
+        res = await cache.adelete_many(key for key in cast(list[str], []))
         assert res == 0
 
     async def test_incr(self, cache: AsyncValkeyCache):
