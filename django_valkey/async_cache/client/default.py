@@ -68,21 +68,21 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return self._clients[index], index
 
-    async def connect(self, index: int = 0) -> AValkey | Any:
+    async def aconnect(self, index: int = 0) -> AValkey | Any:
         return await self.connection_factory.connect(self._server[index])
 
-    aconnect = connect
+    connect = aconnect
 
-    async def disconnect(self, index: int = 0, client=None):
+    async def adisconnect(self, index: int = 0, client=None):
         if client is None:
             client = self._clients[index]
 
         if client is not None:
             await self.connection_factory.disconnect(client)
 
-    adisconnect = disconnect
+    disconnect = adisconnect
 
-    async def set(
+    async def aset(
         self,
         key,
         value,
@@ -135,9 +135,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
                 raise ConnectionInterrupted(connection=client) from e
 
-    aset = set
+    set = aset
 
-    async def incr_version(
+    async def aincr_version(
         self,
         key,
         delta: int = 1,
@@ -179,9 +179,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return new_key, old_key, value, ttl, version
 
-    aincr_version = incr_version
+    incr_version = aincr_version
 
-    async def add(
+    async def aadd(
         self,
         key,
         value,
@@ -193,9 +193,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             key, value, timeout, version=version, client=client, nx=True
         )
 
-    aadd = add
+    add = aadd
 
-    async def get(
+    async def aget(
         self,
         key,
         default: Any | None = None,
@@ -217,9 +217,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return await self.decode(value)
 
-    aget = get
+    get = aget
 
-    async def persist(
+    async def apersist(
         self, key, version: int | None = None, client: AValkey | Any | None = None
     ) -> bool:
         client = await self._get_client(write=True, client=client)
@@ -227,9 +227,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return await client.persist(key)
 
-    apersist = persist
+    persist = apersist
 
-    async def expire(
+    async def aexpire(
         self,
         key,
         timeout,
@@ -245,9 +245,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return await client.expire(key, timeout)
 
-    aexpire = expire
+    expire = aexpire
 
-    async def expire_at(
+    async def aexpire_at(
         self, key, when, version: int | None = None, client: AValkey | Any | None = None
     ) -> bool:
         client = await self._get_client(write=True, client=client)
@@ -256,9 +256,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return await client.expireat(key, when)
 
-    aexpire_at = expire_at
+    expire_at = aexpire_at
 
-    async def pexpire(
+    async def apexpire(
         self,
         key,
         timeout,
@@ -274,9 +274,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return await client.pexpire(key, timeout)
 
-    apexpire = pexpire
+    pexpire = apexpire
 
-    async def pexpire_at(
+    async def apexpire_at(
         self, key, when, version: int | None = None, client: AValkey | Any | None = None
     ) -> bool:
         client = await self._get_client(write=True, client=client)
@@ -285,9 +285,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return await client.pexpireat(key, when)
 
-    apexpire_at = pexpire_at
+    pexpire_at = apexpire_at
 
-    async def get_lock(
+    async def aget_lock(
         self,
         key,
         version: int | None = None,
@@ -316,9 +316,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         )
 
     # TODO: delete this in future releases
-    lock = alock = aget_lock = get_lock
+    lock = alock = get_lock = aget_lock
 
-    async def delete(
+    async def adelete(
         self,
         key,
         version: int | None = None,
@@ -334,9 +334,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-    adelete = delete
+    delete = adelete
 
-    async def delete_pattern(
+    async def adelete_pattern(
         self,
         pattern: str,
         version: int | None = None,
@@ -368,9 +368,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-    adelete_pattern = delete_pattern
+    delete_pattern = adelete_pattern
 
-    async def delete_many(
+    async def adelete_many(
         self, keys, version: int | None = None, client: AValkey | None = None
     ) -> int:
         """Remove multiple keys at once."""
@@ -386,9 +386,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-    adelete_many = delete_many
+    delete_many = adelete_many
 
-    async def clear(self, client: AValkey | Any | None = None) -> bool:
+    async def aclear(self, client: AValkey | Any | None = None) -> bool:
         """
         Flush all cache keys.
         """
@@ -400,9 +400,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-    aclear = clear
+    clear = aclear
 
-    async def decode(self, value: bytes) -> Any:
+    async def adecode(self, value: bytes) -> Any:
         """
         Decode the given value.
         """
@@ -419,9 +419,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             value = self._serializer.loads(value)
         return value
 
-    adecode = decode
+    decode = adecode
 
-    async def encode(self, value) -> bytes | int | float:
+    async def aencode(self, value) -> bytes | int | float:
         """
         Encode the given value.
         """
@@ -431,9 +431,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return value
 
-    aencode = encode
+    encode = aencode
 
-    async def mget(
+    async def amget(
         self, keys, version: int | None = None, client: AValkey | Any | None = None
     ) -> dict:
         if not keys:
@@ -457,9 +457,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return recovered_data
 
-    amget = mget
+    mget = amget
 
-    async def get_many(
+    async def aget_many(
         self,
         keys: Iterable[KeyT],
         version: int | None = None,
@@ -487,9 +487,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             recovered_data[key] = await self.decode(value)
         return recovered_data
 
-    aget_many = get_many
+    get_many = aget_many
 
-    async def set_many(
+    async def aset_many(
         self,
         data: dict,
         timeout: float | int | None = None,
@@ -506,9 +506,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-    aset_many = set_many
+    set_many = aset_many
 
-    async def mset(
+    async def amset(
         self,
         data: dict[KeyT, Any],
         timeout: float | None = None,
@@ -527,7 +527,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-    amset = mset
+    mset = amset
 
     async def _incr(
         self,
@@ -572,7 +572,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return value
 
-    async def incr(
+    async def aincr(
         self,
         key,
         delta: int = 1,
@@ -594,9 +594,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             _operation="incr",
         )
 
-    aincr = incr
+    incr = aincr
 
-    async def decr(
+    async def adecr(
         self,
         key,
         delta: int = 1,
@@ -617,9 +617,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             _operation="decr",
         )
 
-    adecr = decr
+    decr = adecr
 
-    async def ttl(
+    async def attl(
         self, key, version: int | None = None, client: AValkey | Any | None = None
     ) -> int | None:
         """
@@ -639,9 +639,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return None
 
-    attl = ttl
+    ttl = attl
 
-    async def pttl(
+    async def apttl(
         self, key, version: int | None = None, client: AValkey | Any | None = None
     ) -> int | None:
         """
@@ -663,9 +663,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return None
 
-    apttl = pttl
+    pttl = apttl
 
-    async def has_key(
+    async def ahas_key(
         self, key, version: int | None = None, client: AValkey | Any | None = None
     ) -> bool:
         """
@@ -679,9 +679,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-    ahas_key = has_key
+    has_key = ahas_key
 
-    async def iter_keys(
+    async def aiter_keys(
         self,
         search: str,
         itersize: int | None = None,
@@ -700,9 +700,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             async for item in values:
                 yield self.reverse_key(item.decode())
 
-    aiter_keys = iter_keys
+    iter_keys = aiter_keys
 
-    async def keys(
+    async def akeys(
         self,
         search: str,
         version: int | None = None,
@@ -716,9 +716,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-    akeys = keys
+    keys = akeys
 
-    async def scan(
+    async def ascan(
         self,
         cursor: int = 0,
         match: PatternT | None = None,
@@ -745,9 +745,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return cursor, [self.reverse_key(val.decode()) for val in result]
 
-    ascan = scan
+    scan = ascan
 
-    async def make_key(
+    async def amake_key(
         self, key, version: int | None = None, prefix: str | None = None
     ):
         if isinstance(key, CacheKey):
@@ -761,9 +761,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return CacheKey(self._backend.key_func(key, prefix, version))
 
-    amake_key = make_key
+    make_key = amake_key
 
-    async def make_pattern(
+    async def amake_pattern(
         self, pattern: str, version: int | None = None, prefix: str | None = None
     ):
         if isinstance(pattern, CacheKey):
@@ -778,9 +778,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         version_str = glob_escape(str(version))
         return CacheKey(self._backend.key_func(pattern, prefix, version_str))
 
-    amake_pattern = make_pattern
+    make_pattern = amake_pattern
 
-    async def sadd(
+    async def asadd(
         self,
         key,
         *values: Any,
@@ -793,18 +793,18 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return await client.sadd(key, *encoded_values)
 
-    asadd = sadd
+    sadd = asadd
 
-    async def scard(
+    async def ascard(
         self, key, version: int | None = None, client: AValkey | Any | None = None
     ) -> int:
         client = await self._get_client(write=False, client=client)
         key = await self.make_key(key, version=version)
         return await client.scard(key)
 
-    ascard = scard
+    scard = ascard
 
-    async def sdiff(
+    async def asdiff(
         self,
         *keys,
         version: int | None = None,
@@ -817,9 +817,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             await client.sdiff(*nkeys), convert_to_set=return_set
         )
 
-    asdiff = sdiff
+    sdiff = asdiff
 
-    async def sdiffstore(
+    async def asdiffstore(
         self,
         dest,
         *keys,
@@ -832,9 +832,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         nkeys = [await self.make_key(key, version=version_keys) for key in keys]
         return await client.sdiffstore(dest, *nkeys)
 
-    asdiffstore = sdiffstore
+    sdiffstore = asdiffstore
 
-    async def sinter(
+    async def asinter(
         self,
         *keys,
         version: int | None = None,
@@ -847,9 +847,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             await client.sinter(*nkeys), convert_to_set=return_set
         )
 
-    asinter = sinter
+    sinter = asinter
 
-    async def sintercard(
+    async def asintercard(
         self,
         numkeys: int,
         keys: Iterable[str],
@@ -861,9 +861,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         nkeys = [await self.make_key(key, version=version) for key in keys]
         return await client.sintercard(numkeys, keys=nkeys, limit=limit)
 
-    asintercard = sintercard
+    sintercard = asintercard
 
-    async def sinterstore(
+    async def asinterstore(
         self,
         dest,
         *keys,
@@ -876,9 +876,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return await client.sinterstore(dest, *nkeys)
 
-    asinterstore = sinterstore
+    sinterstore = asinterstore
 
-    async def smismember(
+    async def asmismember(
         self,
         key,
         *members: Any,
@@ -892,9 +892,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return [bool(value) for value in await client.smismember(key, *encoded_members)]
 
-    asmismember = smismember
+    smismember = asmismember
 
-    async def sismember(
+    async def asismember(
         self,
         key,
         member: Any,
@@ -907,9 +907,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         member = await self.encode(member)
         return bool(await client.sismember(key, member))
 
-    asismember = sismember
+    sismember = asismember
 
-    async def smembers(
+    async def asmembers(
         self,
         key,
         version: int | None = None,
@@ -923,9 +923,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             await client.smembers(key), convert_to_set=return_set
         )
 
-    asmembers = smembers
+    smembers = asmembers
 
-    async def smove(
+    async def asmove(
         self,
         source,
         destination,
@@ -939,9 +939,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         member = await self.encode(member)
         return await client.smove(source, destination, member)
 
-    asmove = smove
+    smove = asmove
 
-    async def spop(
+    async def aspop(
         self,
         key,
         count: int | None = None,
@@ -954,9 +954,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         result = await client.spop(nkey, count)
         return await self._decode_iterable_result(result, convert_to_set=return_set)
 
-    aspop = spop
+    spop = aspop
 
-    async def srandmember(
+    async def asrandmember(
         self,
         key,
         count: int | None = None,
@@ -969,9 +969,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         result = await client.srandmember(key, count)
         return await self._decode_iterable_result(result, convert_to_set=return_set)
 
-    asrandmember = srandmember
+    srandmember = asrandmember
 
-    async def srem(
+    async def asrem(
         self,
         key,
         *members,
@@ -984,9 +984,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         nmembers = [await self.encode(member) for member in members]
         return await client.srem(key, *nmembers)
 
-    asrem = srem
+    srem = asrem
 
-    async def sscan(
+    async def asscan(
         self,
         key,
         cursor: int = 0,
@@ -1014,9 +1014,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             result, convert_to_set=return_set
         )
 
-    asscan = sscan
+    sscan = asscan
 
-    async def sscan_iter(
+    async def asscan_iter(
         self,
         key,
         match: str | None = None,
@@ -1042,9 +1042,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             async for value in values:
                 yield await self.decode(value)
 
-    asscan_iter = sscan_iter
+    sscan_iter = asscan_iter
 
-    async def sunion(
+    async def asunion(
         self,
         *keys,
         version: int | None = None,
@@ -1058,9 +1058,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             await client.sunion(*nkeys), convert_to_set=retrun_set
         )
 
-    asunion = sunion
+    sunion = asunion
 
-    async def sunionstore(
+    async def asunionstore(
         self,
         destination: Any,
         *keys,
@@ -1072,7 +1072,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         encoded_keys = [await self.make_key(key, version=version) for key in keys]
         return await client.sunionstore(destination, *encoded_keys)
 
-    asunionstore = sunionstore
+    sunionstore = asunionstore
 
     async def aclose(self) -> None:
         close_flag = self._options.get(
@@ -1096,7 +1096,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
     _close = _aclose
 
-    async def touch(
+    async def atouch(
         self,
         key,
         timeout: float | int | None = DEFAULT_TIMEOUT,
@@ -1119,9 +1119,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         timeout = int(timeout * 1000)
         return bool(await client.pexpire(key, timeout))
 
-    atouch = touch
+    touch = atouch
 
-    async def hset(
+    async def ahset(
         self,
         name: str,
         key=None,
@@ -1152,9 +1152,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
 
         return await client.hset(name, key, value, mapping=mapping, items=items)
 
-    ahset = hset
+    hset = ahset
 
-    async def hsetnx(
+    async def ahsetnx(
         self,
         name: str,
         key,
@@ -1167,9 +1167,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         nvalue = await self.encode(value)
         return await client.hsetnx(name, nkey, nvalue)
 
-    ahsetnx = hsetnx
+    hsetnx = ahsetnx
 
-    async def hdel(
+    async def ahdel(
         self,
         name: str,
         key,
@@ -1184,9 +1184,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         nkey = await self.make_key(key, version=version)
         return await client.hdel(name, nkey)
 
-    ahdel = hdel
+    hdel = ahdel
 
-    async def hdel_many(
+    async def ahdel_many(
         self,
         name: str,
         keys: list,
@@ -1197,9 +1197,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         nkeys = [await self.make_key(key) for key in keys]
         return await client.hdel(name, *nkeys)
 
-    ahdel_many = hdel_many
+    hdel_many = ahdel_many
 
-    async def hget(
+    async def ahget(
         self,
         name: str,
         key: str,
@@ -1216,9 +1216,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             return None
         return await self.decode(value)
 
-    ahget = hget
+    hget = ahget
 
-    async def hgetall(
+    async def ahgetall(
         self, name: str, client: AValkey | Any | None = None
     ) -> dict[str, str] | dict:
         client = await self._get_client(write=False, client=client)
@@ -1232,9 +1232,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             values[key.decode()] = await self.decode(value)
         return values
 
-    ahgetall = hgetall
+    hgetall = ahgetall
 
-    async def hmget(
+    async def ahmget(
         self,
         name: str,
         keys: list,
@@ -1251,9 +1251,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         values = [await self.decode(val) for val in values]
         return values
 
-    ahmget = hmget
+    hmget = ahmget
 
-    async def hincrby(
+    async def ahincrby(
         self,
         name: str,
         key: str,
@@ -1269,9 +1269,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             raise ConnectionInterrupted(connection=client) from e
         return value
 
-    ahincrby = hincrby
+    hincrby = ahincrby
 
-    async def hincrbyfloat(
+    async def ahincrbyfloat(
         self,
         name: str,
         key: str,
@@ -1287,18 +1287,18 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             raise ConnectionInterrupted(connection=client) from e
         return value
 
-    ahincrbyfloat = hincrbyfloat
+    hincrbyfloat = ahincrbyfloat
 
-    async def hlen(self, name: str, client: AValkey | Any | None = None) -> int:
+    async def ahlen(self, name: str, client: AValkey | Any | None = None) -> int:
         """
         Return the number of items in hash name.
         """
         client = await self._get_client(write=False, client=client)
         return await client.hlen(name)
 
-    ahlen = hlen
+    hlen = ahlen
 
-    async def hkeys(self, name: str, client: AValkey | Any | None = None) -> list[Any]:
+    async def ahkeys(self, name: str, client: AValkey | Any | None = None) -> list[Any]:
         client = await self._get_client(write=False, client=client)
 
         try:
@@ -1306,9 +1306,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-    ahkeys = hkeys
+    aahkeys = ahkeys
 
-    async def hexists(
+    async def ahexists(
         self,
         name: str,
         key,
@@ -1322,18 +1322,18 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         nkey = await self.make_key(key, version=version)
         return await client.hexists(name, nkey)
 
-    ahexists = hexists
+    hexists = ahexists
 
-    async def hvals(self, name: str, client: AValkey | Any | None = None) -> list:
+    async def ahvals(self, name: str, client: AValkey | Any | None = None) -> list:
         client = await self._get_client(write=False, client=client)
         try:
             return [await self.decode(val) for val in await client.hvals(name)]
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-    ahvals = hvals
+    hvals = ahvals
 
-    async def hstrlen(
+    async def ahstrlen(
         self,
         name: str,
         key: KeyT,
@@ -1347,9 +1347,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-    ahstrlen = hstrlen
+    hstrlen = ahstrlen
 
-    async def hrandfield(
+    async def ahrandfield(
         self,
         name: str,
         count: int | None = None,
@@ -1379,4 +1379,4 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             return [self.reverse_key(val.decode()) for val in result]
         return self.reverse_key(result.decode())
 
-    ahrandfield = hrandfield
+    hrandfield = ahrandfield

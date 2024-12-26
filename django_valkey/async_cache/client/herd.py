@@ -42,7 +42,7 @@ class AsyncHerdClient(AsyncDefaultClient):
 
         return unpacked, False
 
-    async def set(
+    async def aset(
         self,
         key: KeyT,
         value: EncodableT,
@@ -79,9 +79,9 @@ class AsyncHerdClient(AsyncDefaultClient):
             xx=xx,
         )
 
-    aset = set
+    set = aset
 
-    async def get(self, key, default=None, version=None, client=None):
+    async def aget(self, key, default=None, version=None, client=None):
         packed = await super().aget(
             key, default=default, version=version, client=client
         )
@@ -92,9 +92,9 @@ class AsyncHerdClient(AsyncDefaultClient):
 
         return val
 
-    aget = get
+    get = aget
 
-    async def get_many(self, keys, version=None, client=None):
+    async def aget_many(self, keys, version=None, client=None):
         client = await self._get_client(write=False, client=client)
 
         if not keys:
@@ -122,9 +122,9 @@ class AsyncHerdClient(AsyncDefaultClient):
 
         return recovered_data
 
-    aget_many = get_many
+    get_many = aget_many
 
-    async def mget(self, keys, version=None, client=None):
+    async def amget(self, keys, version=None, client=None):
         if not keys:
             return {}
 
@@ -149,9 +149,9 @@ class AsyncHerdClient(AsyncDefaultClient):
 
         return recovered_data
 
-    amget = mget
+    mget = amget
 
-    async def set_many(
+    async def aset_many(
         self, data, timeout=DEFAULT_TIMEOUT, version=None, client=None, herd=True
     ):
         """
@@ -175,19 +175,19 @@ class AsyncHerdClient(AsyncDefaultClient):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-    ast_many = set_many
+    set_many = aset_many
 
-    def incr(self, *args, **kwargs):
+    async def aincr(self, *args, **kwargs):
         raise NotImplementedError
 
-    aincr = incr
+    incr = aincr
 
-    def decr(self, *args, **kwargs):
+    async def adecr(self, *args, **kwargs):
         raise NotImplementedError
 
-    adecr = decr
+    decr = adecr
 
-    async def touch(self, key, timeout=DEFAULT_TIMEOUT, version=None, client=None):
+    async def atouch(self, key, timeout=DEFAULT_TIMEOUT, version=None, client=None):
         client = await self._get_client(write=True, client=client)
 
         value = await self.aget(key, version=version, client=client)
@@ -197,4 +197,4 @@ class AsyncHerdClient(AsyncDefaultClient):
         await self.aset(key, value, timeout=timeout, version=version, client=client)
         return True
 
-    atouch = touch
+    touch = atouch

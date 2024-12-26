@@ -94,89 +94,89 @@ class AsyncValkeyCache(BaseValkeyCache[AsyncDefaultClient, AValkey]):
     hrandfield = BaseValkeyCache.ahrandfield
 
     @omit_exception
-    async def set(self, *args, **kwargs):
+    async def aset(self, *args, **kwargs):
         return await self.client.aset(*args, **kwargs)
 
-    aset = set
+    set = aset
 
     @omit_exception
-    async def incr_version(self, *args, **kwargs):
+    async def aincr_version(self, *args, **kwargs):
         return await self.client.aincr_version(*args, **kwargs)
 
-    aincr_version = incr_version
+    incr_version = aincr_version
 
     @omit_exception
-    async def add(self, *args, **kwargs):
+    async def aadd(self, *args, **kwargs):
         return await self.client.aadd(*args, **kwargs)
 
-    aadd = add
+    add = aadd
 
-    async def get(self, key, default=None, version=None, client=None):
+    async def aget(self, key, default=None, version=None, client=None):
         value = await self._get(key, default, version, client)
         if value is CONNECTION_INTERRUPTED:
             value = default
         return value
 
-    aget = get
+    get = aget
 
     @omit_exception(return_value=CONNECTION_INTERRUPTED)
     async def _get(self, key, default=None, version=None, client=None):
         return await self.client.aget(key, default, version, client)
 
-    async def delete(self, *args, **kwargs):
+    async def adelete(self, *args, **kwargs):
         result = await self.client.adelete(*args, **kwargs)
         return bool(result)
 
-    adelete = delete
+    delete = adelete
 
     @omit_exception
-    async def delete_many(self, *args, **kwargs):
+    async def adelete_many(self, *args, **kwargs):
         return await self.client.adelete_many(*args, **kwargs)
 
-    adelete_many = delete_many
+    delete_many = adelete_many
 
     @omit_exception
-    async def clear(self):
+    async def aclear(self):
         return await self.client.aclear()
 
-    aclear = clear
+    clear = aclear
 
     @omit_exception(return_value={})
-    async def get_many(self, *args, **kwargs):
+    async def aget_many(self, *args, **kwargs):
         return await self.client.aget_many(*args, **kwargs)
 
-    aget_many = get_many
+    get_many = aget_many
 
     @omit_exception
-    async def set_many(self, *args, **kwargs):
+    async def aset_many(self, *args, **kwargs):
         return await self.client.aset_many(*args, **kwargs)
 
-    aset_many = set_many
+    set_many = aset_many
 
     @omit_exception
-    async def incr(self, *args, **kwargs):
+    async def aincr(self, *args, **kwargs):
         return await self.client.aincr(*args, **kwargs)
 
-    aincr = incr
+    incr = aincr
 
     @omit_exception
-    async def decr(self, *args, **kwargs):
+    async def adecr(self, *args, **kwargs):
         return await self.client.adecr(*args, **kwargs)
 
-    adecr = decr
+    decr = adecr
 
     @omit_exception
-    async def has_key(self, *args, **kwargs):
+    async def ahas_key(self, *args, **kwargs):
         return await self.client.ahas_key(*args, **kwargs)
 
-    ahas_key = has_key
+    has_key = ahas_key
 
     @omit_exception
     async def aclose(self, *args, **kwargs):
         return await self.client.aclose()
 
     @omit_exception
-    async def touch(self, *args, **kwargs):
+    async def atouch(self, *args, **kwargs):
         return await self.client.touch(*args, **kwargs)
 
-    atouch = touch
+    touch = atouch
