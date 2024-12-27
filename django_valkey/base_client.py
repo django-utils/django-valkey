@@ -656,7 +656,7 @@ class BaseClient(Generic[Backend]):
         timeout: float | None = None,
         version: int | None = None,
         client: Backend | None = None,
-    ) -> None:
+    ) -> bool:
         """
         an atomic bulk method
         """
@@ -665,7 +665,7 @@ class BaseClient(Generic[Backend]):
             self.make_key(k, version=version): self.encode(v) for k, v in data.items()
         }
         try:
-            client.mset(data)
+            return client.mset(data)
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 

@@ -525,7 +525,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         timeout: float | None = None,
         version: int | None = None,
         client: AValkey | None = None,
-    ) -> None:
+    ) -> bool:
         client = await self._get_client(write=True, client=client)
 
         data = {
@@ -534,7 +534,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         }
 
         try:
-            await client.mset(data)
+            return await client.mset(data)
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
