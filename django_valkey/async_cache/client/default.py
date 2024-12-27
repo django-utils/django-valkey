@@ -159,10 +159,10 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             version = self._backend.version
 
         old_key = await self.make_key(key, version)
-        value = await self.get(old_key, version=version, client=client)
+        value = await self.aget(old_key, version=version, client=client)
 
         try:
-            ttl = await self.ttl(old_key, version=version, client=client)
+            ttl = await self.attl(old_key, version=version, client=client)
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
