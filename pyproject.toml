@@ -72,6 +72,10 @@ django-cmd = ">=2.2"
 sphinx = ">=8.1.3"
 sphinx-pdj-theme = ">=0.4.0"
 
+
+[tool.poetry.group.ipython.dependencies]
+ipython = "^8.31.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
