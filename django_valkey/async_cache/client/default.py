@@ -417,6 +417,10 @@ class AsyncDefaultClient(BaseClient[AValkey]):
                 value = self._compressor.decompress(value)
 
             value = self._serializer.loads(value)
+
+        except AttributeError:
+            # if value is None:
+            return value
         return value
 
     decode = adecode

@@ -535,6 +535,9 @@ class BaseClient(Generic[Backend]):
             with suppress(CompressorError):
                 value = self._compressor.decompress(value)
             value = self._serializer.loads(value)
+        except AttributeError:
+            # if value is None:
+            return value
         return value
 
     def encode(self, value: EncodableT) -> bytes | int | float:
