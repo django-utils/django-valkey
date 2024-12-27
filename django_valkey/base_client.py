@@ -567,7 +567,8 @@ class BaseClient(Generic[Backend]):
         keys: Iterable[KeyT],
         version: int | None = None,
         client: Backend | Any | None = None,
-    ) -> dict:
+        return_list: bool = False,
+    ) -> dict | list[Any]:
         """
         atomic method.
         Retrieve many keys.
@@ -586,6 +587,9 @@ class BaseClient(Generic[Backend]):
             results = client.mget(map_keys)
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
+
+        if return_list:
+            return [self.decode(value) for value in results]
 
         for key, value in zip(map_keys, results):
             if value is None:

@@ -438,8 +438,12 @@ class AsyncDefaultClient(BaseClient[AValkey]):
     encode = aencode
 
     async def amget(
-        self, keys, version: int | None = None, client: AValkey | Any | None = None
-    ) -> dict:
+        self,
+        keys,
+        version: int | None = None,
+        client: AValkey | Any | None = None,
+        return_list: bool = False,
+    ) -> dict | list[Any]:
         if not keys:
             return {}
 
@@ -453,6 +457,9 @@ class AsyncDefaultClient(BaseClient[AValkey]):
             results = await client.mget(*map_keys)
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
+
+        if return_list:
+            return [await self.decode(value) for value in results]
 
         for key, value in zip(map_keys, results):
             if value is None:
