@@ -8,6 +8,7 @@ from pytest_mock import MockerFixture
 
 from django_valkey.cache import ValkeyCache
 from django_valkey.client import DefaultClient, ShardClient
+from django_valkey.server.sync_server.client import DefaultClient as ServerClient
 
 
 @pytest.fixture
@@ -56,6 +57,36 @@ class TestClientClose:
         mock = mocker.patch.object(cache_client.connection_factory, "disconnect")
         cache_client.close()
         assert mock.called
+
+
+class TestServerClient:
+    @patch("tests.test_client.ServerClient.get_client")
+    @patch("tests.test_client.ServerClient.__init__", return_value=None)
+    def test_delete_pattern_calls_get_client_given_no_client(
+        self, init_mock, get_client_mock
+    ):
+        client = ServerClient()
+        client._backend = Mock()
+        client._backend.key_prefix = ""
+
+        client.delete_pattern(pattern="foo*")
+        get_client_mock.assert_called_once_with(write=True, tried=None)
+
+    @patch("tests.test_client.ServerClient.make_pattern")
+    @patch("tests.test_client.ServerClient.get_client")
+    @patch("tests.test_client.ServerClient.__init__", return_value=None)
+    def test_delete_pattern_calls_make_pattern(
+        self, init_mock, get_client_mock, make_pattern_mock
+    ):
+        client = DefaultClient()
+        client._backend = Mock()
+        client._backend.key_prefix = ""
+        get_client_mock.return_value.scan_iter.return_value = []
+
+        client.delete_pattern(pattern="foo*")
+
+        kwargs = {"version": None, "prefix": None}
+        make_pattern_mock.assert_called_once_with("foo*", **kwargs)
 
 
 class TestDefaultClient:
