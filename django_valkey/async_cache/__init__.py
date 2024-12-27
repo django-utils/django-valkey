@@ -17,7 +17,9 @@ async def get_valkey_connection(alias="default", write=True):
     if not hasattr(cache.client, "get_client"):
         raise NotImplementedError(error_message)
 
-    if not isawaitable(cache.client.get_client):
-        raise "use django_valkey.get_valkey_connection for sync backends"
-
-    return await cache.client.get_client(write)
+    try:
+        return await cache.client.get_client(write)
+    except TypeError:
+        raise TypeError(
+            "this method is for async clients, use `django_valkey.get_valkey_connection` for sync clients"
+        )
