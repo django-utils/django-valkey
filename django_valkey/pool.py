@@ -90,9 +90,12 @@ def get_connection_factory(
 ) -> ConnectionFactory | SentinelConnectionFactory | Any:
 
     path = getattr(settings, "DJANGO_VALKEY_CONNECTION_FACTORY", path)
-    opt_conn_factory = options.get("CONNECTION_FACTORY")
-    if opt_conn_factory:
-        path = opt_conn_factory
+    if options:
+        opt_conn_factory = options.get("CONNECTION_FACTORY")
+        if opt_conn_factory:
+            path = opt_conn_factory
 
+    if not path:
+        raise AttributeError("connection factory path is not provided")
     cls = import_string(path)
     return cls(options)
