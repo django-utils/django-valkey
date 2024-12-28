@@ -34,7 +34,7 @@ class HashRing:
             self.sorted_keys.remove(_hash)
 
     def get_node(self, key: str) -> str | None:
-        n, i = self.get_node_pos(key)
+        n, _ = self.get_node_pos(key)
         return n
 
     def get_node_pos(self, key: str) -> Tuple[str, int] | Tuple[None, None]:
@@ -50,7 +50,7 @@ class HashRing:
         if len(self.ring) == 0:
             yield None, None
 
-        node, pos = self.get_node_pos(key)
+        _, pos = self.get_node_pos(key)
         for k in self.sorted_keys[pos:]:
             yield k, self.ring[k]
 
