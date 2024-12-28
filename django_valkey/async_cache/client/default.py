@@ -1205,7 +1205,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         client: AValkey | Any | None = None,
     ) -> int:
         client = await self._get_client(write=True, client=client)
-        nkeys = [await self.make_key(key) for key in keys]
+        nkeys = [await self.make_key(key, version=version) for key in keys]
         return await client.hdel(name, *nkeys)
 
     hdel_many = ahdel_many
