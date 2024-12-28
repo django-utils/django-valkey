@@ -1,4 +1,4 @@
-from typing import Any
+from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
 from django.conf import settings
@@ -11,6 +11,12 @@ from valkey._parsers.url_parser import to_bool
 
 from django_valkey.base_pool import BaseConnectionFactory
 from django_valkey.typing import DefaultParserT
+
+if TYPE_CHECKING:
+    from django_valkey.async_cache.pool import (
+        AsyncConnectionFactory,
+        AsyncSentinelConnectionFactory,
+    )
 
 
 class ConnectionFactory(BaseConnectionFactory[Valkey, ConnectionPool]):
@@ -64,7 +70,7 @@ class SentinelConnectionFactory(ConnectionFactory):
             **connection_kwargs,
         )
 
-    def get_connection_pool(self, params: dict) -> ConnectionPool | Any:
+    def get_connection_pool(self, params: dict) -> ConnectionPool:
         """
         Given a connection parameters, return a new sentinel connection pool
         for them.
@@ -88,7 +94,12 @@ class SentinelConnectionFactory(ConnectionFactory):
 
 def get_connection_factory(
     path: str | None = None, options: dict | None = None
-) -> ConnectionFactory | SentinelConnectionFactory | Any:
+) -> (
+    ConnectionFactory
+    | SentinelConnectionFactory
+    | "AsyncConnectionFactory"
+    | "AsyncSentinelConnectionFactory"
+):
 
     path = getattr(settings, "DJANGO_VALKEY_CONNECTION_FACTORY", path)
     if options:

@@ -1,4 +1,5 @@
 import lzma
+from collections.abc import Sequence
 
 from django.conf import settings
 
@@ -33,9 +34,9 @@ class LzmaCompressor(BaseCompressor):
 
     format = getattr(settings, "COMPRESS_LZMA_FORMAT", 1)
     check = getattr(settings, "COMPRESS_LZMA_CHECK", -1)
-    filters: dict | None = getattr(settings, "COMPRESS_LZMA_FILTERS", None)
+    filters: Sequence[dict] | None = getattr(settings, "COMPRESS_LZMA_FILTERS", None)
 
-    memlimit: int = getattr(settings, "DECOMPRESS_LZMA_MEMLIMIT", None)
+    memlimit: int | None = getattr(settings, "DECOMPRESS_LZMA_MEMLIMIT", None)
     decomp_format = getattr(settings, "DECOMPRESS_LZMA_FORMAT", 0)
     decomp_filters = getattr(settings, "DECOMPRESS_LZMA_FILTERS", None)
 
