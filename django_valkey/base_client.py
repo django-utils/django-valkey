@@ -584,7 +584,7 @@ class BaseClient(Generic[Backend]):
         map_keys = {self.make_key(k, version=version): k for k in keys}
 
         try:
-            results = client.mget(map_keys)
+            results: list[bytes] = client.mget(map_keys)
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
@@ -1073,7 +1073,7 @@ class BaseClient(Generic[Backend]):
         version: int | None = None,
         client: Backend | Any | None = None,
         return_set: bool = True,
-    ) -> list | Any:
+    ) -> builtins.set | list | Any:
         client = self._get_client(write=False, client=client)
 
         key = self.make_key(key, version=version)
@@ -1102,7 +1102,7 @@ class BaseClient(Generic[Backend]):
         version: int | None = None,
         client: Backend | Any | None = None,
         return_set: bool = True,
-    ) -> tuple[int, builtins.set[Any]] | tuple[int, list[Any]]:
+    ) -> tuple[int, builtins.set[Any] | list[Any]]:
         if self._has_compression_enabled() and match:
             err_msg = "Using match with compression is not supported."
             raise ValueError(err_msg)
@@ -1275,7 +1275,7 @@ class BaseClient(Generic[Backend]):
         client: Backend | Any | None = None,
     ) -> int:
         client = self._get_client(write=True, client=client)
-        nkeys = [self.make_key(key) for key in keys]
+        nkeys = [self.make_key(key, version=version) for key in keys]
         return client.hdel(name, *nkeys)
 
     def hget(
@@ -1315,7 +1315,7 @@ class BaseClient(Generic[Backend]):
         keys: list,
         version: int | None = None,
         client: Backend | Any | None = None,
-    ) -> list:
+    ) -> list[Any]:
         client = self._get_client(write=False, client=client)
         nkeys = [self.make_key(key, version=version) for key in keys]
         try:
@@ -1373,7 +1373,7 @@ class BaseClient(Generic[Backend]):
         self,
         name: str,
         client: Backend | Any | None = None,
-    ) -> list[Any]:
+    ) -> list[str]:
         """
         Return a list of keys in hash name.
         """

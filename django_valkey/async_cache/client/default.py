@@ -1,5 +1,5 @@
 import builtins
-from collections.abc import Iterable, AsyncIterable
+from collections.abc import Iterable, AsyncIterator
 import contextlib
 from contextlib import suppress
 from typing import Any, cast, TYPE_CHECKING
@@ -454,7 +454,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         map_keys = {await self.make_key(k, version=version): k for k in keys}
 
         try:
-            results = await client.mget(*map_keys)
+            results: list[bytes] = await client.mget(*map_keys)
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
@@ -698,7 +698,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         itersize: int | None = None,
         client: AValkey | Any | None = None,
         version: int | None = None,
-    ) -> AsyncIterable[KeyT]:
+    ) -> AsyncIterator[KeyT]:
         """
         Same as keys, but uses cursors
         for make memory efficient keys iteration.
@@ -974,7 +974,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         version: int | None = None,
         client: AValkey | Any | None = None,
         return_set: bool = True,
-    ) -> list | Any:
+    ) -> builtins.set | list | Any:
         client = await self._get_client(write=False, client=client)
         key = await self.make_key(key, version=version)
         result = await client.srandmember(key, count)
@@ -1034,7 +1034,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         count: int = 10,
         version: int | None = None,
         client: AValkey | Any | None = None,
-    ) -> AsyncIterable[Any]:
+    ) -> AsyncIterator[Any]:
         if self._has_compression_enabled() and match:
             error_message = "Using match with compression is not supported."
             raise ValueError(error_message)
@@ -1251,7 +1251,7 @@ class AsyncDefaultClient(BaseClient[AValkey]):
         keys: list,
         version: int | None = None,
         client: AValkey | Any | None = None,
-    ) -> list:
+    ) -> list[Any]:
         client = await self._get_client(write=False, client=client)
         nkeys = [await self.make_key(key, version=version) for key in keys]
         try:

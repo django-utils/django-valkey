@@ -9,14 +9,15 @@ from valkey.connection import ConnectionPool, DefaultParser
 from valkey.sentinel import Sentinel
 from valkey._parsers.url_parser import to_bool
 
-from django_valkey.base_pool import BaseConnectionFactory, Base
+from django_valkey.base_pool import BaseConnectionFactory
+from django_valkey.typing import DefaultParserT
 
 
 class ConnectionFactory(BaseConnectionFactory[Valkey, ConnectionPool]):
     path_pool_cls = "valkey.connection.ConnectionPool"
     path_base_cls = "valkey.client.Valkey"
 
-    def disconnect(self, connection: type[Valkey] | type) -> None:
+    def disconnect(self, connection: type[Valkey]) -> None:
         """
         Given a not null client connection it disconnects from the Valkey server.
 
@@ -24,17 +25,17 @@ class ConnectionFactory(BaseConnectionFactory[Valkey, ConnectionPool]):
         """
         connection.connection_pool.disconnect()
 
-    def get_parser_cls(self) -> type[DefaultParser] | type:
+    def get_parser_cls(self) -> DefaultParserT:
         cls = self.options.get("PARSER_CLASS", None)
         if cls is None:
             return DefaultParser
         return import_string(cls)
 
-    def connect(self, url: str) -> Valkey | Any:
+    def connect(self, url: str) -> Valkey:
         params = self.make_connection_params(url)
         return self.get_connection(params)
 
-    def get_connection(self, params: dict) -> Base | Any:
+    def get_connection(self, params: dict) -> Valkey:
         pool = self.get_or_create_connection_pool(params)
         return self.base_client_cls(connection_pool=pool, **self.base_client_cls_kwargs)
 
@@ -78,7 +79,7 @@ class SentinelConnectionFactory(ConnectionFactory):
 
         # convert "is_master" to a boolean if set on the URL, otherwise if not
         # provided it defaults to True.
-        is_master: list[str] = parse_qs(url.query).get("is_master")
+        is_master: list[str] | None = parse_qs(url.query).get("is_master", None)
         if is_master:
             pool.is_master = to_bool(is_master[0])
 

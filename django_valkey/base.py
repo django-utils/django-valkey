@@ -1,14 +1,21 @@
+import builtins
+from collections.abc import Iterator, AsyncIterator, Callable
 import contextlib
 import functools
 import logging
 from asyncio import iscoroutinefunction
-from typing import Any, TypeVar, Generic, Iterator, AsyncGenerator, Set, Callable
+from typing import Any, TypeVar, Generic, TYPE_CHECKING
 
 from django.conf import settings
 from django.core.cache.backends.base import BaseCache
 from django.utils.module_loading import import_string
 
 from django_valkey.exceptions import ConnectionInterrupted
+from django_valkey.typing import KeyT
+
+if TYPE_CHECKING:
+    from valkey.lock import Lock
+    from valkey.asyncio.lock import Lock as ALock
 
 Client = TypeVar("Client")
 Backend = TypeVar("Backend")
@@ -91,19 +98,19 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return self._client
 
     @omit_exception
-    def mset(self, *args, **kwargs):
+    def mset(self, *args, **kwargs) -> bool:
         return self.client.mset(*args, **kwargs)
 
     @omit_exception
-    async def amset(self, *args, **kwargs):
+    async def amset(self, *args, **kwargs) -> bool:
         return await self.client.amset(*args, **kwargs)
 
     @omit_exception
-    def mget(self, *args, **kwargs):
+    def mget(self, *args, **kwargs) -> dict | list[Any]:
         return self.client.mget(*args, **kwargs)
 
     @omit_exception
-    async def amget(self, *args, **kwargs):
+    async def amget(self, *args, **kwargs) -> dict | list[Any]:
         return await self.client.amget(*args, **kwargs)
 
     @omit_exception
@@ -147,13 +154,13 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.apexpire_at(*args, **kwargs)
 
     @omit_exception
-    def get_lock(self, *args, **kwargs):
+    def get_lock(self, *args, **kwargs) -> "Lock":
         return self.client.get_lock(*args, **kwargs)
 
     lock = get_lock
 
     @omit_exception
-    async def aget_lock(self, *args, **kwargs):
+    async def aget_lock(self, *args, **kwargs) -> "ALock":
         return await self.client.aget_lock(*args, **kwargs)
 
     alock = aget_lock
@@ -169,7 +176,7 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.adelete_pattern(*args, **kwargs)
 
     @omit_exception
-    def ttl(self, *args, **kwargs) -> int | None:
+    def ttl(self, *args, **kwargs) -> int:
         return self.client.ttl(*args, **kwargs)
 
     @omit_exception
@@ -185,29 +192,29 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.apttl(*args, **kwargs)
 
     @omit_exception
-    def iter_keys(self, *args, **kwargs) -> Iterator:
+    def iter_keys(self, *args, **kwargs) -> Iterator[KeyT]:
         return self.client.iter_keys(*args, **kwargs)
 
     @omit_exception
-    async def aiter_keys(self, *args, **kwargs) -> AsyncGenerator:
+    async def aiter_keys(self, *args, **kwargs) -> AsyncIterator[KeyT]:
         async with contextlib.aclosing(self.client.aiter_keys(*args, **kwargs)) as it:
             async for key in it:
                 yield key
 
     @omit_exception
-    def keys(self, *args, **kwargs) -> list[Any]:
+    def keys(self, *args, **kwargs) -> list:
         return self.client.keys(*args, **kwargs)
 
     @omit_exception
-    async def akeys(self, *args, **kwargs) -> list[Any]:
+    async def akeys(self, *args, **kwargs) -> list:
         return await self.client.akeys(*args, **kwargs)
 
     @omit_exception
-    def scan(self, *args, **kwargs) -> tuple[int, list[str]]:
+    def scan(self, *args, **kwargs) -> tuple[int, list[Any]]:
         return self.client.scan(*args, **kwargs)
 
     @omit_exception
-    async def ascan(self, *args, **kwargs) -> tuple[int, list[str]]:
+    async def ascan(self, *args, **kwargs) -> tuple[int, list[Any]]:
         return await self.client.ascan(*args, **kwargs)
 
     @omit_exception
@@ -227,11 +234,11 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.ascard(*args, **kwargs)
 
     @omit_exception
-    def sdiff(self, *args, **kwargs) -> Set[Any]:
+    def sdiff(self, *args, **kwargs) -> builtins.set[Any] | list[Any]:
         return self.client.sdiff(*args, **kwargs)
 
     @omit_exception
-    async def asdiff(self, *args, **kwargs) -> Set[Any]:
+    async def asdiff(self, *args, **kwargs) -> builtins.set[Any] | list[Any]:
         return await self.client.asdiff(*args, **kwargs)
 
     @omit_exception
@@ -243,11 +250,11 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.asdiffstore(*args, **kwargs)
 
     @omit_exception
-    def sinter(self, *args, **kwargs) -> Set[Any]:
+    def sinter(self, *args, **kwargs) -> builtins.set[Any] | list[Any]:
         return self.client.sinter(*args, **kwargs)
 
     @omit_exception
-    async def asinter(self, *args, **kwargs) -> Set[Any]:
+    async def asinter(self, *args, **kwargs) -> builtins.set[Any] | list[Any]:
         return await self.client.asinter(*args, **kwargs)
 
     @omit_exception
@@ -283,11 +290,11 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.asismember(*args, **kwargs)
 
     @omit_exception
-    def smembers(self, *args, **kwargs) -> Set[Any]:
+    def smembers(self, *args, **kwargs) -> builtins.set[Any] | list[Any]:
         return self.client.smembers(*args, **kwargs)
 
     @omit_exception
-    async def asmembers(self, *args, **kwargs) -> Set[Any]:
+    async def asmembers(self, *args, **kwargs) -> builtins.set[Any] | list[Any]:
         return await self.client.asmembers(*args, **kwargs)
 
     @omit_exception
@@ -299,19 +306,19 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.asmove(*args, **kwargs)
 
     @omit_exception
-    def spop(self, *args, **kwargs) -> Set | Any:
+    def spop(self, *args, **kwargs) -> builtins.set | list | Any:
         return self.client.spop(*args, **kwargs)
 
     @omit_exception
-    async def aspop(self, *args, **kwargs) -> Set | Any:
+    async def aspop(self, *args, **kwargs) -> builtins.set | list | Any:
         return await self.client.aspop(*args, **kwargs)
 
     @omit_exception
-    def srandmember(self, *args, **kwargs) -> list | Any:
+    def srandmember(self, *args, **kwargs) -> builtins.set | list | Any:
         return self.client.srandmember(*args, **kwargs)
 
     @omit_exception
-    async def asrandmember(self, *args, **kwargs) -> list | Any:
+    async def asrandmember(self, *args, **kwargs) -> builtins.set | list | Any:
         return await self.client.asrandmember(*args, **kwargs)
 
     @omit_exception
@@ -323,29 +330,31 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.asrem(*args, **kwargs)
 
     @omit_exception
-    def sscan(self, *args, **kwargs) -> Set[Any]:
+    def sscan(self, *args, **kwargs) -> tuple[int, builtins.set[Any] | list[Any]]:
         return self.client.sscan(*args, **kwargs)
 
     @omit_exception
-    async def asscan(self, *args, **kwargs) -> Set[Any]:
+    async def asscan(
+        self, *args, **kwargs
+    ) -> tuple[int, builtins.set[Any] | list[Any]]:
         return await self.client.asscan(*args, **kwargs)
 
     @omit_exception
-    def sscan_iter(self, *args, **kwargs) -> Iterator:
+    def sscan_iter(self, *args, **kwargs) -> Iterator[Any]:
         return self.client.sscan_iter(*args, **kwargs)
 
     @omit_exception
-    async def asscan_iter(self, *args, **kwargs) -> AsyncGenerator:
+    async def asscan_iter(self, *args, **kwargs) -> AsyncIterator[Any]:
         async with contextlib.aclosing(self.client.asscan_iter(*args, **kwargs)) as it:
             async for key in it:
                 yield key
 
     @omit_exception
-    def sunion(self, *args, **kwargs) -> Set[Any]:
+    def sunion(self, *args, **kwargs) -> builtins.set[Any] | list[Any]:
         return self.client.sunion(*args, **kwargs)
 
     @omit_exception
-    async def asunion(self, *args, **kwargs) -> Set[Any]:
+    async def asunion(self, *args, **kwargs) -> builtins.set[Any] | list[Any]:
         return await self.client.asunion(*args, **kwargs)
 
     @omit_exception
@@ -389,19 +398,19 @@ class BaseValkeyCache(BaseCache, Generic[Client, Backend]):
         return await self.client.ahdel_many(*args, **kwargs)
 
     @omit_exception
-    def hget(self, *args, **kwargs) -> bytes | None:
+    def hget(self, *args, **kwargs) -> Any | None:
         return self.client.hget(*args, **kwargs)
 
     @omit_exception
-    async def ahget(self, *args, **kwargs) -> str | None:
+    async def ahget(self, *args, **kwargs) -> Any | None:
         return await self.client.ahget(*args, **kwargs)
 
     @omit_exception
-    def hgetall(self, *args, **kwargs) -> dict:
+    def hgetall(self, *args, **kwargs) -> dict[str, Any]:
         return self.client.hgetall(*args, **kwargs)
 
     @omit_exception
-    async def ahgetall(self, *args, **kwargs) -> dict:
+    async def ahgetall(self, *args, **kwargs) -> dict[str, Any]:
         return await self.client.ahgetall(*args, **kwargs)
 
     @omit_exception
