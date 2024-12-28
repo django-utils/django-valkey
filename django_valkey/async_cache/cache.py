@@ -172,7 +172,7 @@ class AsyncValkeyCache(BaseValkeyCache[AsyncDefaultClient, AValkey]):
     has_key = ahas_key
 
     @omit_exception
-    async def aclose(self, *args, **kwargs):
+    async def aclose(self):
         return await self.client.aclose()
 
     @omit_exception
