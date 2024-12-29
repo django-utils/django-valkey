@@ -1,4 +1,3 @@
-from typing import Any
 from urllib.parse import urlparse, parse_qs
 
 from django.core.exceptions import ImproperlyConfigured
@@ -10,6 +9,7 @@ from valkey.asyncio.sentinel import Sentinel
 from valkey._parsers.url_parser import to_bool
 
 from django_valkey.base_pool import BaseConnectionFactory
+from django_valkey.typing import AsyncDefaultParserT
 
 
 class AsyncConnectionFactory(BaseConnectionFactory[AValkey, ConnectionPool]):
@@ -19,17 +19,17 @@ class AsyncConnectionFactory(BaseConnectionFactory[AValkey, ConnectionPool]):
     async def disconnect(self, connection: type[AValkey]) -> None:
         await connection.connection_pool.disconnect()
 
-    def get_parser_cls(self) -> type[DefaultParser] | type:
+    def get_parser_cls(self) -> AsyncDefaultParserT:
         cls = self.options.get("PARSER_CLS", None)
         if cls is None:
             return DefaultParser
         return import_string(cls)
 
-    async def connect(self, url: str) -> AValkey | Any:
+    async def connect(self, url: str) -> AValkey:
         params = self.make_connection_params(url)
         return await self.get_connection(params)
 
-    async def get_connection(self, params: dict) -> AValkey | Any:
+    async def get_connection(self, params: dict) -> AValkey:
         pool = self.get_or_create_connection_pool(params)
         return await self.base_client_cls(
             connection_pool=pool, **self.base_client_cls_kwargs
@@ -57,13 +57,13 @@ class AsyncSentinelConnectionFactory(AsyncConnectionFactory):
             **connection_kwargs,
         )
 
-    def get_connection_pool(self, params: dict) -> ConnectionPool | Any:
+    def get_connection_pool(self, params: dict) -> ConnectionPool:
         url = urlparse(params["url"])
         cp_params = params
         cp_params.update(service_name=url.hostname, sentinel_manager=self._sentinel)
         pool = super().get_connection_pool(cp_params)
 
-        is_master = parse_qs(url.query).get("is_master")
+        is_master: list[str] | None = parse_qs(url.query).get("is_master")
         if is_master:
             pool.is_master = to_bool(is_master[0])
 
