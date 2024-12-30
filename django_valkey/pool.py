@@ -1,4 +1,3 @@
-from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
 from django.conf import settings
@@ -12,11 +11,10 @@ from valkey._parsers.url_parser import to_bool
 from django_valkey.base_pool import BaseConnectionFactory
 from django_valkey.typing import DefaultParserT
 
-if TYPE_CHECKING:
-    from django_valkey.async_cache.pool import (
-        AsyncConnectionFactory,
-        AsyncSentinelConnectionFactory,
-    )
+from django_valkey.async_cache.pool import (
+    AsyncConnectionFactory,
+    AsyncSentinelConnectionFactory,
+)
 
 
 class ConnectionFactory(BaseConnectionFactory[Valkey, ConnectionPool]):
@@ -97,8 +95,8 @@ def get_connection_factory(
 ) -> (
     ConnectionFactory
     | SentinelConnectionFactory
-    | "AsyncConnectionFactory"
-    | "AsyncSentinelConnectionFactory"
+    | AsyncConnectionFactory
+    | AsyncSentinelConnectionFactory
 ):
 
     path = getattr(settings, "DJANGO_VALKEY_CONNECTION_FACTORY", path)
