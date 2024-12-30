@@ -227,7 +227,7 @@ class TestAsyncDjangoValkeyCache:
         await cache.aset("b", 2)
         await cache.aset("c", 3)
 
-        res = await cache.mget(["a", "b", "c"])
+        res = await cache.amget(["a", "b", "c"])
         assert res == {"a": 1, "b": 2, "c": 3}
 
     async def test_get_many_unicode(self, cache: AsyncValkeyCache):
