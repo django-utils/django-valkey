@@ -4,11 +4,12 @@ import time
 from typing import Tuple, Any, Iterable
 
 from django.conf import settings
+from django.core.cache.backends.base import DEFAULT_TIMEOUT
+
 from valkey import Valkey
 from valkey.exceptions import ConnectionError, ResponseError, TimeoutError
 from valkey.typing import EncodableT
 
-from django_valkey.base_client import DEFAULT_TIMEOUT, Backend
 from django_valkey.client.default import DefaultClient
 from django_valkey.exceptions import ConnectionInterrupted
 from django_valkey.typing import KeyT
@@ -139,8 +140,9 @@ class HerdClient(DefaultClient):
         self,
         keys: Iterable[KeyT],
         version: int | None = None,
-        client: Backend | Any | None = None,
-    ) -> dict:
+        client: Valkey | Any | None = None,
+        return_list: bool = False,
+    ) -> dict | list:
         client = self._get_client(write=False, client=client)
         if not keys:
             return {}
@@ -153,6 +155,16 @@ class HerdClient(DefaultClient):
             results = client.mget(new_keys)
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
+
+        if return_list:
+            value_list = []
+            for r in results:
+                val, refresh = self._unpack(self.decode(r))
+                if refresh:
+                    value_list.append(None)
+                else:
+                    value_list.append(val)
+            return value_list
 
         for key, value in zip(keys, results):
             if value is None:

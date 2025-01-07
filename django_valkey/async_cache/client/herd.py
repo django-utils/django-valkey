@@ -3,12 +3,13 @@ import time
 from typing import Tuple, Any
 
 from django.conf import settings
+from django.core.cache.backends.base import DEFAULT_TIMEOUT
+
 from valkey import Valkey
 from valkey.exceptions import ConnectionError, ResponseError, TimeoutError
 from valkey.typing import EncodableT
 
 from django_valkey.async_cache.client import AsyncDefaultClient
-from django_valkey.base_client import DEFAULT_TIMEOUT
 from django_valkey.client.herd import Marker, _is_expired
 from django_valkey.exceptions import ConnectionInterrupted
 from django_valkey.typing import KeyT
@@ -102,7 +103,7 @@ class AsyncHerdClient(AsyncDefaultClient):
 
         recovered_data = {}
 
-        new_keys = [await self.make_key(key, version=version) for key in keys]
+        new_keys = [self.make_key(key, version=version) for key in keys]
         map_keys = dict(zip(new_keys, keys))
 
         try:
@@ -117,7 +118,7 @@ class AsyncHerdClient(AsyncDefaultClient):
             if value is None:
                 continue
 
-            val, refresh = await self._unpack(await self.decode(value))
+            val, refresh = await self._unpack(self.decode(value))
             recovered_data[map_keys[key]] = None if refresh else val
 
         return recovered_data
@@ -132,7 +133,7 @@ class AsyncHerdClient(AsyncDefaultClient):
 
         recovered_data = {}
 
-        new_keys = [await self.make_key(key, version=version) for key in keys]
+        new_keys = [self.make_key(key, version=version) for key in keys]
         map_keys = dict(zip(new_keys, keys))
 
         try:
@@ -144,7 +145,7 @@ class AsyncHerdClient(AsyncDefaultClient):
             if value is None:
                 continue
 
-            val, refresh = await self._unpack(await self.decode(value))
+            val, refresh = await self._unpack(self.decode(value))
             recovered_data[map_keys[key]] = None if refresh else val
 
         return recovered_data
