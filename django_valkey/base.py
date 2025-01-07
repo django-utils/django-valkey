@@ -476,6 +476,8 @@ class AsyncCacheCommands:
     async def aclose(self):
         return await self.client.aclose()
 
+    close = aclose
+
     @omit_exception
     async def atouch(self, *args, **kwargs):
         return await self.client.touch(*args, **kwargs)
