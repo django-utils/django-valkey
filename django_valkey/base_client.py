@@ -16,6 +16,7 @@ from django.utils.module_loading import import_string
 
 from valkey import Valkey
 from valkey.asyncio import Valkey as AValkey
+from valkey.cluster import ValkeyCluster
 from valkey.exceptions import ConnectionError, ResponseError, TimeoutError
 from valkey.typing import EncodableT
 
@@ -61,7 +62,9 @@ class BaseClient:
             or "django_valkey.util.default_reverse_key"
         )
 
-        self._clients: list[Valkey | AValkey | None] = [None] * len(self._server)
+        self._clients: list[Valkey | AValkey | ValkeyCluster | None] = [None] * len(
+            self._server
+        )
         self._options: dict = params.get("OPTIONS", {})
         self._replica_read_only = self._options.get("REPLICA_READ_ONLY", True)
 

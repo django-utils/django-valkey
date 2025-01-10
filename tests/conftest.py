@@ -24,16 +24,21 @@ else:
         default_cache.clear()
 
 
-if isawaitable(default_valkey.clear()):
+try:
+    if isawaitable(default_valkey.clear()):
 
-    @pytest_asyncio.fixture(loop_scope="session")
-    async def valkey():
-        yield default_valkey
-        await default_valkey.aclear()
+        @pytest_asyncio.fixture(loop_scope="session")
+        async def valkey():
+            yield default_valkey
+            await default_valkey.aclear()
 
-else:
+    else:
 
-    @pytest.fixture
-    def valkey() -> Iterable[BaseValkeyCache]:
-        yield default_valkey
-        default_valkey.clear()
+        @pytest.fixture
+        def valkey() -> Iterable[BaseValkeyCache]:
+            yield default_valkey
+            default_valkey.clear()
+
+except AttributeError:
+    # cluster client doesn't support this feature yet
+    pass

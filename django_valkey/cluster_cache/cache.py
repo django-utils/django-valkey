@@ -1,13 +1,14 @@
 from valkey.cluster import ValkeyCluster
 
-from django_valkey.base import BaseValkeyCache
-from django_valkey.cache import CONNECTION_INTERRUPTED
+from django_valkey.base import (
+    BaseValkeyCache,
+    SyncCacheCommands,
+    CONNECTION_INTERRUPTED,
+)
 from django_valkey.cluster_cache.client import DefaultClusterClient
 
 
-class ClusterValkeyCache(BaseValkeyCache[DefaultClusterClient, ValkeyCluster]):
-    DEFAULT_CLIENT_CLASS = "django_valkey.cluster_cache.client.DefaultClusterClient"
-
+class ClusterSyncCacheCommands(SyncCacheCommands):
     def set(self, *args, **kwargs):
         return self.client.set(*args, **kwargs)
 
@@ -73,3 +74,9 @@ class ClusterValkeyCache(BaseValkeyCache[DefaultClusterClient, ValkeyCluster]):
 
     def touch(self, *args, **kwargs):
         return self.client.touch(*args, **kwargs)
+
+
+class ClusterValkeyCache(
+    BaseValkeyCache[DefaultClusterClient, ValkeyCluster], ClusterSyncCacheCommands
+):
+    DEFAULT_CLIENT_CLASS = "django_valkey.cluster_cache.client.DefaultClusterClient"

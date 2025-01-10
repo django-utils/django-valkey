@@ -1,14 +1,50 @@
 from valkey.cluster import ValkeyCluster
 from valkey.typing import KeyT, EncodableT
 
-from django_valkey.base_client import BaseClient, _main_exceptions
+from django_valkey.base_client import _main_exceptions
+from django_valkey.client.default import SyncClientMethod
 from django_valkey.exceptions import ConnectionInterrupted
 
 
-class DefaultClusterClient(BaseClient):
+class DefaultClusterClient(SyncClientMethod):
     CONNECTION_FACTORY_PATH = (
         "django_valkey.cluster_cache.pool.ClusterConnectionFactory"
     )
+
+    def _get_client(self, write=True, tried=None, client=None) -> ValkeyCluster:
+        if client:
+            return client
+        return self.get_client(write=write, tried=tried)
+
+    def get_client(self, write=True, tried=None) -> ValkeyCluster:
+        index = self.get_next_client_index(write=write, tried=tried)
+
+        if self._clients[index] is None:
+            self._clients[index] = self.connect(index)
+
+        return self._clients[index]
+
+    def get_client_with_index(
+        self, write=True, tried=None
+    ) -> tuple[ValkeyCluster, int]:
+        index = self.get_next_client_index(write=write, tried=tried)
+        if self._clients[index] is None:
+            self._clients[index] = self.connect(index)
+
+        return self._clients[index], index
+
+    def connect(self, index: int = 0) -> ValkeyCluster:
+        return self.connection_factory.connect(self._server[index])
+
+    def disconnect(self, index: int = 0, client: ValkeyCluster | None = None) -> None:
+        """
+        delegates the connection factory to disconnect the client
+        """
+        if client is None:
+            client = self._clients[index]
+
+        if client is not None:
+            self.connection_factory.disconnect(client)
 
     def readonly(self, target_nodes=None, client=None):
         client = self._get_client(write=True, client=client)
