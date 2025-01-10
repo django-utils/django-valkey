@@ -33,5 +33,6 @@ dist
 htmlcov
 test.sh
 test_*.sh
+.cluster
 
 docs/build
