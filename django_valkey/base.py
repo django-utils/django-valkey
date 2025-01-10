@@ -33,28 +33,27 @@ def omit_exception(method: Callable | None = None, return_value: Any | None = No
     if method is None:
         return functools.partial(omit_exception, return_value=return_value)
 
+    def handle_error(self, e):
+        if self._ignore_exceptions:
+            if self._log_ignored_exceptions:
+                self.logger.exception("Exception ignored")
+
+            return return_value
+        raise e.__cause__  # noqa: B904
+
     @functools.wraps(method)
     def _decorator(self, *args, **kwargs):
         try:
             return method(self, *args, **kwargs)
         except ConnectionInterrupted as e:
-            if self._ignore_exceptions:
-                if self._log_ignored_exceptions:
-                    self.logger.exception("Exception ignored")
-
-                return return_value
-            raise e.__cause__  # noqa: B904
+            return handle_error(self, e)
 
     @functools.wraps(method)
     async def _async_decorator(self, *args, **kwargs):
         try:
             return await method(self, *args, **kwargs)
         except ConnectionInterrupted as e:
-            if self._ignore_exceptions:
-                if self._log_ignored_exceptions:
-                    self.logger.exception("Exception ignored")
-                return return_value
-            raise e.__cause__
+            return handle_error(self, e)
 
     return _async_decorator if iscoroutinefunction(method) else _decorator
 
