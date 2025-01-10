@@ -1,5 +1,3 @@
-from typing import Dict
-
 from valkey.cluster import ValkeyCluster
 from valkey.typing import KeyT, EncodableT
 
@@ -7,7 +5,7 @@ from django_valkey.base_client import BaseClient, _main_exceptions
 from django_valkey.exceptions import ConnectionInterrupted
 
 
-class DefaultClusterClient(BaseClient[ValkeyCluster]):
+class DefaultClusterClient(BaseClient):
     CONNECTION_FACTORY_PATH = (
         "django_valkey.cluster_cache.pool.ClusterConnectionFactory"
     )
@@ -39,7 +37,7 @@ class DefaultClusterClient(BaseClient[ValkeyCluster]):
 
     def mset(
         self,
-        data: Dict[KeyT, EncodableT],
+        data: dict[KeyT, EncodableT],
         version=None,
         client=None,
         nx=False,
@@ -64,13 +62,13 @@ class DefaultClusterClient(BaseClient[ValkeyCluster]):
 
     set_many = mset
 
-    def msetnx(self, data: Dict[KeyT, EncodableT], version=None, client=None):
+    def msetnx(self, data: dict[KeyT, EncodableT], version=None, client=None):
         try:
             return self.mset(data, version=version, client=client, nx=True)
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-    def mset_nonatomic(self, data: Dict[KeyT, EncodableT], version=None, client=None):
+    def mset_nonatomic(self, data: dict[KeyT, EncodableT], version=None, client=None):
         try:
             return self.mset(data, version=version, client=client, atomic=False)
         except _main_exceptions as e:

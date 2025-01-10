@@ -1,5 +1,5 @@
+from collections.abc import Iterable
 from inspect import isawaitable
-from typing import Iterable
 
 import pytest
 import pytest_asyncio

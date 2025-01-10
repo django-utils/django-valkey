@@ -1,8 +1,9 @@
+from collections.abc import Iterable
 import datetime
 import threading
 import time
 from datetime import timedelta
-from typing import Iterable, List, cast
+from typing import cast
 from unittest.mock import patch
 
 import pytest
@@ -315,7 +316,7 @@ class TestDjangoValkeyCache:
         assert bool(res) is False
 
     def test_delete_many_empty_generator(self, cache: ClusterValkeyCache):
-        res = cache.delete_many(key for key in cast(List[str], []))
+        res = cache.delete_many(key for key in cast(list[str], []))
         assert bool(res) is False
 
     def test_incr(self, cache: ClusterValkeyCache):

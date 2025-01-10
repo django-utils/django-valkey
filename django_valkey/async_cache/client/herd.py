@@ -1,6 +1,6 @@
 import socket
 import time
-from typing import Tuple, Any
+from typing import Any
 
 from django.conf import settings
 from django.core.cache.backends.base import DEFAULT_TIMEOUT
@@ -23,11 +23,11 @@ class AsyncHerdClient(AsyncDefaultClient):
         self._herd_timeout: int = getattr(settings, "CACHE_HERD_TIMEOUT", 60)
         super().__init__(*args, **kwargs)
 
-    async def _pack(self, value: Any, timeout) -> Tuple[Marker, Any, int]:
+    async def _pack(self, value: Any, timeout) -> tuple[Marker, Any, int]:
         herd_timeout = (timeout or self._backend.default_timeout) + int(time.time())
         return self._marker, value, herd_timeout
 
-    async def _unpack(self, value: Tuple[Marker, Any, int]) -> Tuple[Any, bool]:
+    async def _unpack(self, value: tuple[Marker, Any, int]) -> tuple[Any, bool]:
         try:
             marker, unpacked, herd_timeout = value
         except (ValueError, TypeError):

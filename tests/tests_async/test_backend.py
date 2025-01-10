@@ -333,7 +333,7 @@ class TestAsyncDjangoValkeyCache:
         res = await cache.aget_many(["a", "b", "c"])
         assert res == {"c": 3}
 
-        res = await cache.adelete_many((key for key in ("a", "b")))
+        res = await cache.adelete_many(key for key in ("a", "b"))
         assert res == 0
 
     async def test_delete_many_empty_generator(self, cache: AsyncValkeyCache):

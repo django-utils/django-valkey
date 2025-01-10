@@ -1,5 +1,6 @@
+from collections.abc import Iterable
 import copy
-from typing import Iterable, cast
+from typing import cast
 
 import pytest
 from django.core.cache import caches
