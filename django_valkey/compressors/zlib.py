@@ -33,8 +33,7 @@ class ZlibCompressor(BaseCompressor):
     def _compress(self, value: bytes) -> bytes:
         if int(platform.python_version_tuple()[1]) >= 11:
             return zlib.compress(value, level=self.level or 6, wbits=self.wbits)
-        else:
-            return zlib.compress(value, level=self.level or 6)
+        return zlib.compress(value, level=self.level or 6)
 
     def _decompress(self, value: bytes) -> bytes:
         return zlib.decompress(value, wbits=self.wbits)
