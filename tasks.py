@@ -1,4 +1,4 @@
-import os
+import pathlib
 import shutil
 
 from invoke import task
@@ -13,9 +13,9 @@ def devenv(c):
 
 @task
 def clean(c):
-    if os.path.isdir("build"):
+    if pathlib.Path("build").is_dir():
         shutil.rmtree("build")
-    if os.path.isdir("dist"):
+    if pathlib.Path("dist").is_dir():
         shutil.rmtree("dist")
 
     c.run("docker compose --profile all rm -s -f")
