@@ -1123,8 +1123,7 @@ class AsyncClientMethod(BaseClient):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client) from e
 
-        values = [self.decode(val) for val in values]
-        return values
+        return [self.decode(val) for val in values]
 
     hmget = ahmget
 
