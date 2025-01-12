@@ -426,7 +426,6 @@ class AsyncClientMethod(BaseClient):
     async def amset(
         self,
         data: dict[KeyT, Any],
-        timeout: float | None = None,
         version: int | None = None,
         client: AValkey | None = None,
     ) -> bool:

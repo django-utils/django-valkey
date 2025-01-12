@@ -445,7 +445,6 @@ class SyncClientMethod(BaseClient):
     def mset(
         self,
         data: dict[KeyT, Any],
-        timeout: float | None = None,
         version: int | None = None,
         client: Valkey | None = None,
     ) -> bool:
