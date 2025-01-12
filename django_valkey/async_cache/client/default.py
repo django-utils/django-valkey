@@ -124,7 +124,7 @@ class AsyncClientMethod(BaseClient):
         self,
         key,
         value,
-        timeout: float | int | None = DEFAULT_TIMEOUT,
+        timeout: int | None = DEFAULT_TIMEOUT,
         version: int | None = None,
         client: AValkey | Any | None = None,
     ) -> bool:
@@ -230,7 +230,7 @@ class AsyncClientMethod(BaseClient):
         self,
         key,
         version: int | None = None,
-        timeout: float | int | None = None,
+        timeout: float | None = None,
         sleep: float = 0.1,
         blocking: bool = True,
         blocking_timeout: float | None = None,
@@ -407,7 +407,7 @@ class AsyncClientMethod(BaseClient):
     async def aset_many(
         self,
         data: dict,
-        timeout: float | int | None = None,
+        timeout: int | None = None,
         version: int | None = None,
         client: AValkey | Any | None = None,
     ) -> None:
@@ -975,7 +975,7 @@ class AsyncClientMethod(BaseClient):
     async def atouch(
         self,
         key,
-        timeout: float | int | None = DEFAULT_TIMEOUT,
+        timeout: int | None = DEFAULT_TIMEOUT,
         version: int | None = None,
         client: AValkey | Any | None = None,
     ) -> bool:

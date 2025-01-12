@@ -22,7 +22,7 @@ class SyncClientMethod(BaseClient):
         self,
         key: KeyT,
         value: EncodableT,
-        timeout: int | float | None = DEFAULT_TIMEOUT,
+        timeout: int | None = DEFAULT_TIMEOUT,
         version: int | None = None,
         client: Valkey | Any | None = None,
         nx: bool = False,
@@ -130,7 +130,7 @@ class SyncClientMethod(BaseClient):
         self,
         key: KeyT,
         value: EncodableT,
-        timeout: float | None = DEFAULT_TIMEOUT,
+        timeout: int | None = DEFAULT_TIMEOUT,
         version: int | None = None,
         client: Valkey | Any | None = None,
     ) -> bool:
@@ -421,7 +421,7 @@ class SyncClientMethod(BaseClient):
     def set_many(
         self,
         data: dict[KeyT, EncodableT],
-        timeout: float | None = DEFAULT_TIMEOUT,
+        timeout: int | None = DEFAULT_TIMEOUT,
         version: int | None = None,
         client: Valkey | Any | None = None,
     ) -> None:
@@ -948,7 +948,7 @@ class SyncClientMethod(BaseClient):
     def touch(
         self,
         key: KeyT,
-        timeout: float | None = DEFAULT_TIMEOUT,
+        timeout: int | None = DEFAULT_TIMEOUT,
         version: int | None = None,
         client: Valkey | Any | None = None,
     ) -> bool:

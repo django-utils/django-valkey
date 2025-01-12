@@ -52,9 +52,9 @@ class ShardClient(DefaultClient):
         self,
         key: KeyT,
         value: EncodableT,
-        timeout: float | None = DEFAULT_TIMEOUT,
+        timeout: int | None = DEFAULT_TIMEOUT,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> bool:
         if client is None:
             key = self.make_key(key, version=version)
@@ -69,7 +69,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         default: Any | None = None,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> Any:
         if client is None:
             key = self.make_key(key, version=version)
@@ -81,7 +81,7 @@ class ShardClient(DefaultClient):
         self,
         keys: KeyT,
         version: int | None = None,
-        _client: Valkey | Any | None = None,
+        _client: Valkey | None = None,
     ) -> dict:
         if not keys:
             return {}
@@ -108,9 +108,9 @@ class ShardClient(DefaultClient):
         self,
         key: KeyT,
         value: EncodableT,
-        timeout: int | float | None = DEFAULT_TIMEOUT,
+        timeout: int | None = DEFAULT_TIMEOUT,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
         nx: bool = False,
         xx: bool = False,
     ) -> bool:
@@ -134,9 +134,9 @@ class ShardClient(DefaultClient):
     def set_many(
         self,
         data: dict[KeyT, EncodableT],
-        timeout: float | None = DEFAULT_TIMEOUT,
+        timeout: int | None = DEFAULT_TIMEOUT,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> None:
         """
         Set a bunch of values in the cache at once from a dict of key/value
@@ -152,7 +152,7 @@ class ShardClient(DefaultClient):
         raise NotImplementedError
 
     def has_key(
-        self, key: KeyT, version: int | None = None, client: Valkey | Any | None = None
+        self, key: KeyT, version: int | None = None, client: Valkey | None = None
     ) -> bool:
         """
         Test if key exists.
@@ -173,7 +173,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         version: int | None = None,
         prefix: str | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> int:
         if client is None:
             key = self.make_key(key, version=version)
@@ -182,7 +182,7 @@ class ShardClient(DefaultClient):
         return super().delete(key=key, version=version, client=client)
 
     def ttl(
-        self, key: KeyT, version: int | None = None, client: Valkey | Any | None = None
+        self, key: KeyT, version: int | None = None, client: Valkey | None = None
     ) -> int | None:
         """
         Executes TTL valkey command and return the "time-to-live" of specified key.
@@ -196,7 +196,7 @@ class ShardClient(DefaultClient):
         return super().ttl(key=key, version=version, client=client)
 
     def pttl(
-        self, key: KeyT, version: int | None = None, client: Valkey | Any | None = None
+        self, key: KeyT, version: int | None = None, client: Valkey | None = None
     ) -> int | None:
         """
         Executes PTTL valkey command and return the "time-to-live" of specified key
@@ -210,7 +210,7 @@ class ShardClient(DefaultClient):
         return super().pttl(key=key, version=version, client=client)
 
     def persist(
-        self, key: KeyT, version: int | None = None, client: Valkey | Any | None = None
+        self, key: KeyT, version: int | None = None, client: Valkey | None = None
     ) -> bool:
         if client is None:
             key = self.make_key(key, version=version)
@@ -223,7 +223,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         timeout: int | timedelta,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> bool:
         if client is None:
             key = self.make_key(key, version=version)
@@ -236,7 +236,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         timeout: int | timedelta,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> bool:
         if client is None:
             key = self.make_key(key, version=version)
@@ -249,7 +249,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         when: datetime | int,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> bool:
         """
         Set an expiry flag on a ``key`` to ``when`` on a shard client.
@@ -267,7 +267,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         when: datetime | int,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> bool:
         """
         Set an expiry flag on a ``key`` to ``when`` on a shard client.
@@ -310,9 +310,7 @@ class ShardClient(DefaultClient):
     # TODO: delete in future.
     lock = get_lock
 
-    def delete_many(
-        self, keys, version=None, _client: Valkey | Any | None = None
-    ) -> int:
+    def delete_many(self, keys, version=None, _client: Valkey | None = None) -> int:
         """
         Remove multiple keys at once.
         """
@@ -327,7 +325,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         delta: int = 1,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> int:
         if client is None:
             key = self.make_key(key, version=version)
@@ -345,7 +343,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         delta: int = 1,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
         **kwargs,
     ) -> int:
         if client is None:
@@ -359,7 +357,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         delta: int = 1,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> int:
         if client is None:
             key = self.make_key(key, version=version)
@@ -371,7 +369,7 @@ class ShardClient(DefaultClient):
         self,
         search: str,
         itersize: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
         version: int | None = None,
     ):
         """Not Implemented"""
@@ -382,7 +380,7 @@ class ShardClient(DefaultClient):
         self,
         search: str,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> list[str]:
         pattern = self.make_pattern(search, version=version)
         keys = []
@@ -400,7 +398,7 @@ class ShardClient(DefaultClient):
         self,
         pattern: str,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
         itersize: int | None = None,
         prefix: str | None = None,
     ) -> int:
@@ -429,9 +427,9 @@ class ShardClient(DefaultClient):
     def touch(
         self,
         key: KeyT,
-        timeout: float | None = DEFAULT_TIMEOUT,
+        timeout: int | None = DEFAULT_TIMEOUT,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> bool:
         if client is None:
             key = self.make_key(key, version=version)
@@ -448,7 +446,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         *values: Any,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> int:
         if client is None:
             key = self.make_key(key, version=version)
@@ -459,7 +457,7 @@ class ShardClient(DefaultClient):
         self,
         key: KeyT,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> int:
         if client is None:
             key = self.make_key(key, version=version)
@@ -470,7 +468,7 @@ class ShardClient(DefaultClient):
         self,
         key: KeyT,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
         return_set: bool = True,
     ) -> builtins.set[Any] | list[Any]:
         if client is None:
@@ -486,7 +484,7 @@ class ShardClient(DefaultClient):
         destination: KeyT,
         member: Any,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> bool:
         if client is None:
             source = self.make_key(source, version=version)
@@ -506,7 +504,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         *members,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> int:
         if client is None:
             key = self.make_key(key, version=version)
@@ -520,7 +518,7 @@ class ShardClient(DefaultClient):
         match: str | None = None,
         count: int = 10,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
         return_set: bool = True,
     ) -> tuple[int, builtins.set[Any]] | tuple[int, list[Any]]:
         if client is None:
@@ -542,7 +540,7 @@ class ShardClient(DefaultClient):
         match: str | None = None,
         count: int = 10,
         version: int | None = None,
-        client: Valkey | Any | Any | None = None,
+        client: Valkey | None = None,
     ) -> Iterator[Any]:
         if client is None:
             key = self.make_key(key, version=version)
@@ -556,7 +554,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         count: int | None = None,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
         return_set: bool = True,
     ) -> builtins.set | list | Any:
         if client is None:
@@ -571,7 +569,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         member: Any,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> bool:
         if client is None:
             key = self.make_key(key, version=version)
@@ -583,7 +581,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         count: int | None = None,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
         return_set: bool = True,
     ) -> builtins.set | list | Any:
         if client is None:
@@ -598,7 +596,7 @@ class ShardClient(DefaultClient):
         key: KeyT,
         *members,
         version: int | None = None,
-        client: Valkey | Any | None = None,
+        client: Valkey | None = None,
     ) -> list[bool]:
         if client is None:
             key = self.make_key(key, version=version)
