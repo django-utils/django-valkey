@@ -118,7 +118,7 @@ class BaseClient:
             tried = []
 
         if tried and len(tried) < len(self._server):
-            not_tried = [i for i in range(0, len(self._server)) if i not in tried]
+            not_tried = [i for i in range(len(self._server)) if i not in tried]
             return random.choice(not_tried)
 
         return random.randint(1, len(self._server) - 1)
@@ -128,10 +128,7 @@ class BaseClient:
         Decode the given value.
         """
         try:
-            if value.isdigit():
-                value = int(value)
-            else:
-                value = float(value)
+            value = int(value) if value.isdigit() else float(value)
         except (ValueError, TypeError):
             # Handle little values, chosen to be not compressed
             with suppress(CompressorError):
