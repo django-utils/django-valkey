@@ -24,8 +24,6 @@ class Marker:
     marker for herded keys.
     """
 
-    pass
-
 
 def _is_expired(x, herd_timeout: int) -> bool:
     if x >= herd_timeout:
