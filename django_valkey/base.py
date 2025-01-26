@@ -12,7 +12,7 @@ from django.core.cache.backends.base import get_key_func, DEFAULT_TIMEOUT
 from django.utils.module_loading import import_string
 
 from django_valkey.exceptions import ConnectionInterrupted
-from django_valkey.typing import KeyT
+from django_valkey.typings import KeyT
 
 if TYPE_CHECKING:
     from valkey.lock import Lock

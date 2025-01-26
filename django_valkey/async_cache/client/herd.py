@@ -12,7 +12,7 @@ from valkey.typing import EncodableT
 from django_valkey.async_cache.client import AsyncDefaultClient
 from django_valkey.client.herd import Marker, _is_expired
 from django_valkey.exceptions import ConnectionInterrupted
-from django_valkey.typing import KeyT
+from django_valkey.typings import KeyT
 
 _main_exceptions = (ConnectionError, ResponseError, TimeoutError, socket.timeout)
 

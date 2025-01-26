@@ -25,7 +25,7 @@ from django_valkey.compressors.identity import IdentityCompressor
 from django_valkey.exceptions import CompressorError
 from django_valkey.serializers.pickle import PickleSerializer
 from django_valkey.util import CacheKey
-from django_valkey.typing import KeyT
+from django_valkey.typings import KeyT
 
 if TYPE_CHECKING:
     from django_valkey.cache import ValkeyCache

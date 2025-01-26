@@ -16,7 +16,7 @@ from django_valkey.base_client import (
 )
 from django_valkey.exceptions import ConnectionInterrupted
 from django_valkey.util import CacheKey
-from django_valkey.typing import KeyT
+from django_valkey.typings import KeyT
 
 if TYPE_CHECKING:
     from valkey.asyncio.lock import Lock

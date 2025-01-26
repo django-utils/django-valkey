@@ -9,7 +9,7 @@ from valkey.sentinel import Sentinel
 from valkey._parsers.url_parser import to_bool
 
 from django_valkey.base_pool import BaseConnectionFactory
-from django_valkey.typing import DefaultParserT
+from django_valkey.typings import DefaultParserT
 
 from django_valkey.async_cache.pool import (
     AsyncConnectionFactory,
