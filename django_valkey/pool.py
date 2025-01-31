@@ -1,23 +1,27 @@
+from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.module_loading import import_string
 from valkey import Valkey
-from valkey.connection import ConnectionPool, DefaultParser
+from valkey.connection import DefaultParser
 from valkey.sentinel import Sentinel
 from valkey._parsers.url_parser import to_bool
 
 from django_valkey.base_pool import BaseConnectionFactory
 from django_valkey.typings import DefaultParserT
 
-from django_valkey.async_cache.pool import (
-    AsyncConnectionFactory,
-    AsyncSentinelConnectionFactory,
-)
+if TYPE_CHECKING:
+    from django_valkey.async_cache.pool import (
+        AsyncConnectionFactory,
+        AsyncSentinelConnectionFactory,
+    )
+    from valkey.connection import ConnectionPool
+    from valkey.sentinel import SentinelConnectionPool
 
 
-class ConnectionFactory(BaseConnectionFactory[Valkey, ConnectionPool]):
+class ConnectionFactory(BaseConnectionFactory[Valkey]):
     path_pool_cls = "valkey.connection.ConnectionPool"
     path_base_cls = "valkey.client.Valkey"
 
@@ -40,11 +44,13 @@ class ConnectionFactory(BaseConnectionFactory[Valkey, ConnectionPool]):
         return self.get_connection(params)
 
     def get_connection(self, params: dict) -> Valkey:
-        pool = self.get_or_create_connection_pool(params)
+        pool: ConnectionPool = self.get_or_create_connection_pool(params)
         return self.base_client_cls(connection_pool=pool, **self.base_client_cls_kwargs)
 
 
 class SentinelConnectionFactory(ConnectionFactory):
+    path_pool_cls = "valkey.sentinel.SentinelConnectionPool"
+
     def __init__(self, options: dict):
         # allow overriding the default SentinelConnectionPool class
         options.setdefault(
@@ -68,7 +74,7 @@ class SentinelConnectionFactory(ConnectionFactory):
             **connection_kwargs,
         )
 
-    def get_connection_pool(self, params: dict) -> ConnectionPool:
+    def get_connection_pool(self, params: dict) -> "SentinelConnectionPool":
         """
         Given a connection parameters, return a new sentinel connection pool
         for them.
@@ -79,7 +85,7 @@ class SentinelConnectionFactory(ConnectionFactory):
         # SentinelConnectionPool constructor since will be called by from_url
         cp_params = params
         cp_params.update(service_name=url.hostname, sentinel_manager=self._sentinel)
-        pool = super().get_connection_pool(cp_params)
+        pool: SentinelConnectionPool = super().get_connection_pool(cp_params)
 
         # convert "is_master" to a boolean if set on the URL, otherwise if not
         # provided it defaults to True.
@@ -92,12 +98,7 @@ class SentinelConnectionFactory(ConnectionFactory):
 
 def get_connection_factory(
     path: str | None = None, options: dict | None = None
-) -> (
-    ConnectionFactory
-    | SentinelConnectionFactory
-    | AsyncConnectionFactory
-    | AsyncSentinelConnectionFactory
-):
+) -> "ConnectionFactory | SentinelConnectionFactory | AsyncConnectionFactory | AsyncSentinelConnectionFactory":
 
     path = getattr(settings, "DJANGO_VALKEY_CONNECTION_FACTORY", path)
     if options:

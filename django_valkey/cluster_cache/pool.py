@@ -7,7 +7,7 @@ from valkey.connection import ConnectionPool, DefaultParser
 from django_valkey.base_pool import BaseConnectionFactory
 
 
-class ClusterConnectionFactory(BaseConnectionFactory[ValkeyCluster, ConnectionPool]):
+class ClusterConnectionFactory(BaseConnectionFactory[ValkeyCluster]):
     path_pool_cls = "valkey.connection.ConnectionPool"
     path_base_cls = "valkey.cluster.ValkeyCluster"
 

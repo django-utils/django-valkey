@@ -3,25 +3,24 @@ from typing import TypeVar, Generic, Any
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.module_loading import import_string
 
-Pool = TypeVar("Pool")
 Base = TypeVar("Base")
 
 
-class BaseConnectionFactory(Generic[Base, Pool]):
+class BaseConnectionFactory(Generic[Base]):
     # Store connection pool by cache backend options.
     #
     # _pools is a process-global, as otherwise _pools is cleared every time
     # ConnectionFactory is instantiated, as Django creates new cache client
     # (DefaultClient) instance for every request.
 
-    _pools: dict[str, Pool | Any] = {}
+    _pools: dict[str, type] = {}  # dict[str, Pool]
 
     def __init__(self, options: dict) -> None:
-        pool_cls_path: str = options.get("CONNECTION_POOL_CLASS", self.path_pool_cls)
-        self.pool_cls: type[Pool] = import_string(pool_cls_path)
+        pool_cls_path: str = options.get("CONNECTION_POOL_CLASS", self.path_pool_cls)  # type: ignore[attr-defined]
+        self.pool_cls = import_string(pool_cls_path)  # type[Pool]
         self.pool_cls_kwargs = options.get("CONNECTION_POOL_KWARGS", {})
 
-        base_client_cls_path: str = options.get("BASE_CLIENT_CLASS", self.path_base_cls)
+        base_client_cls_path: str = options.get("BASE_CLIENT_CLASS", self.path_base_cls)  # type: ignore[attr-defined]
         self.base_client_cls: type[Base] = import_string(base_client_cls_path)
         self.base_client_cls_kwargs = options.get("BASE_CLIENT_KWARGS", {})
 
@@ -42,7 +41,7 @@ class BaseConnectionFactory(Generic[Base, Pool]):
         # TODO: do we need to check for existence?
         if socket_timeout:
             if not isinstance(socket_timeout, (int, float)):
-                error_message = "Socket timeout should be float or integer"
+                error_message = "Socket timeout should be float or integer"  # type: ignore[unreachable]
                 raise ImproperlyConfigured(error_message)
             kwargs["socket_timeout"] = socket_timeout
 
@@ -51,7 +50,7 @@ class BaseConnectionFactory(Generic[Base, Pool]):
         )
         if socket_connect_timeout:
             if not isinstance(socket_connect_timeout, (int, float)):
-                error_message = "Socket connect timeout should be float or integer"
+                error_message = "Socket connect timeout should be float or integer"  # type: ignore[unreachable]
                 raise ImproperlyConfigured(error_message)
             kwargs["socket_connect_timeout"] = socket_connect_timeout
 
@@ -61,17 +60,18 @@ class BaseConnectionFactory(Generic[Base, Pool]):
 
         return kwargs
 
-    def get_connection_pool(self, params: dict) -> Pool:
+    def get_connection_pool(self, params: dict):
         """
         Given a connection parameters, return a new
         connection pool for them.
 
         Overwrite this method if you want a custom
         behavior on creating connection pool.
+
+        :returns: the connection pool
         """
-        cp_params = params
-        cp_params.update(self.pool_cls_kwargs)
-        pool = self.pool_cls.from_url(**cp_params)
+        params.update(self.pool_cls_kwargs)
+        pool = self.pool_cls.from_url(**params)
 
         if pool.connection_kwargs.get("password", None) is None:
             pool.connection_kwargs["password"] = params.get("password")
@@ -79,13 +79,15 @@ class BaseConnectionFactory(Generic[Base, Pool]):
 
         return pool
 
-    def get_or_create_connection_pool(self, params: dict) -> Pool:
+    def get_or_create_connection_pool(self, params: dict):
         """
         Given a connection parameters and return a new
         or cached connection pool for them.
 
         Reimplement this method if you want distinct
         connection pool instance caching behavior.
+
+        :returns: the connection pool
         """
         key: str = params["url"]
         if key not in self._pools:

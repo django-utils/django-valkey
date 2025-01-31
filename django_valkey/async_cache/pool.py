@@ -12,7 +12,7 @@ from django_valkey.base_pool import BaseConnectionFactory
 from django_valkey.typings import AsyncDefaultParserT
 
 
-class AsyncConnectionFactory(BaseConnectionFactory[AValkey, ConnectionPool]):
+class AsyncConnectionFactory(BaseConnectionFactory[AValkey]):
     path_pool_cls = "valkey.asyncio.connection.ConnectionPool"
     path_base_cls = "valkey.asyncio.client.Valkey"
 
