@@ -1,5 +1,5 @@
 import builtins
-from collections.abc import Iterable
+from collections.abc import Sequence
 import random
 import socket
 from typing import (
@@ -34,7 +34,7 @@ _main_exceptions = (TimeoutError, ResponseError, ConnectionError, socket.timeout
 class BaseClient:
     def __init__(
         self,
-        server: str | Iterable,
+        server: Sequence,
         params: dict[str, Any],
         backend: "ValkeyCache",
     ) -> None:
@@ -44,7 +44,7 @@ class BaseClient:
             error_message = "Missing connections string"
             raise ImproperlyConfigured(error_message)
         if not isinstance(self._server, (list, tuple, set)):
-            self._server = self._server.split(",")
+            self._server = self._server.split(",")  # type: ignore[attr-defined]
 
         self._params = params
 
@@ -75,14 +75,14 @@ class BaseClient:
         )
 
         self._connection_factory = getattr(
-            settings, "DJANGO_VALKEY_CONNECTION_FACTORY", self.CONNECTION_FACTORY_PATH
+            settings, "DJANGO_VALKEY_CONNECTION_FACTORY", self.CONNECTION_FACTORY_PATH  # type: ignore[attr-defined]
         )
         self.connection_factory = pool.get_connection_factory(
             options=self._options, path=self._connection_factory
         )
 
     def __contains__(self, key: KeyT) -> bool:
-        return self.has_key(key)
+        return self.has_key(key)  # type: ignore[attr-defined]
 
     def _has_compression_enabled(self) -> bool:
         return (

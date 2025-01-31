@@ -1,3 +1,4 @@
+# mypy: disable-error-code="attr-defined"
 import builtins
 import time
 from collections.abc import Iterator, AsyncIterator, Callable
@@ -133,7 +134,7 @@ class BaseValkeyCache(Generic[Client, Backend]):
         """
         if self._client is None:
             self._client = self._client_cls(self._server, self._params, self)
-        return self._client
+        return self._client  # type: ignore[return-value]
 
 
 class SyncCacheCommands:
