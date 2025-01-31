@@ -10,44 +10,13 @@ from valkey import Valkey
 from valkey.exceptions import ConnectionError
 from valkey.typing import EncodableT
 
-from django_valkey.client.default import DefaultClient
+from django_valkey.client.default import BaseDefaultClient, SyncClientMethods
 from django_valkey.exceptions import ConnectionInterrupted
 from django_valkey.hash_ring import HashRing
 from django_valkey.typings import KeyT
 
 
-class ShardClient(DefaultClient):
-    _findhash = re.compile(r".*\{(.*)\}.*", re.I)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if not isinstance(self._server, (list, tuple, set)):
-            self._server = [self._server]
-
-        self._ring = HashRing(self._server)
-        self._server_dict = self.connect()
-
-    def get_client(self, *args, **kwargs):
-        raise NotImplementedError
-
-    def connect(self, index: int = 0) -> dict:
-        connection_dict = {}
-        for name in self._server:
-            connection_dict[name] = self.connection_factory.connect(name)
-        return connection_dict
-
-    def get_server_name(self, _key: KeyT) -> str:
-        key = str(_key)
-        g = self._findhash.match(key)
-        if g is not None and len(g.groups()) > 0:
-            key = g.groups()[0]
-        return self._ring.get_node(key)
-
-    def get_server(self, key: KeyT):
-        name = self.get_server_name(key)
-        return self._server_dict[name]
-
+class SyncShardMethods(SyncClientMethods):
     def add(
         self,
         key: KeyT,
@@ -602,3 +571,40 @@ class ShardClient(DefaultClient):
             key = self.make_key(key, version=version)
             client = self.get_server(key)
         return super().smismember(key, *members, version=version, client=client)
+
+
+class BaseShardClient(BaseDefaultClient):
+    _findhash = re.compile(r".*\{(.*)\}.*", re.I)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not isinstance(self._server, (list, tuple, set)):
+            self._server = [self._server]
+
+        self._ring = HashRing(self._server)
+        self._server_dict = self.connect()
+
+    def get_client(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def connect(self, index: int = 0) -> dict:
+        connection_dict = {}
+        for name in self._server:
+            connection_dict[name] = self.connection_factory.connect(name)
+        return connection_dict
+
+    def get_server_name(self, _key: KeyT) -> str:
+        key = str(_key)
+        g = self._findhash.match(key)
+        if g is not None and len(g.groups()) > 0:
+            key = g.groups()[0]
+        return self._ring.get_node(key)
+
+    def get_server(self, key: KeyT):
+        name = self.get_server_name(key)
+        return self._server_dict[name]
+
+
+class ShardClient(BaseShardClient, SyncShardMethods):
+    pass

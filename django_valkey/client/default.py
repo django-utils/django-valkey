@@ -10,14 +10,14 @@ from valkey.typing import EncodableT, ExpiryT, AbsExpiryT, PatternT
 
 from django_valkey.base_client import BaseClient, _main_exceptions
 from django_valkey.exceptions import ConnectionInterrupted
-from django_valkey.typing import KeyT
+from django_valkey.typings import KeyT
 from django_valkey.util import CacheKey
 
 if TYPE_CHECKING:
     from valkey.lock import Lock
 
 
-class SyncClientMethod(BaseClient):
+class SyncClientMethods(BaseClient):
     def set(
         self,
         key: KeyT,
@@ -1202,7 +1202,7 @@ class SyncClientMethod(BaseClient):
         return self.reverse_key(result.decode())
 
 
-class DefaultClient(SyncClientMethod):
+class BaseDefaultClient:
     CONNECTION_FACTORY_PATH = "django_valkey.pool.ConnectionFactory"
 
     def _get_client(self, write=True, tried=None, client=None) -> Valkey:
@@ -1245,3 +1245,7 @@ class DefaultClient(SyncClientMethod):
             self._clients[index] = self.connect(index)
 
         return self._clients[index], index
+
+
+class DefaultClient(BaseDefaultClient, SyncClientMethods):
+    pass

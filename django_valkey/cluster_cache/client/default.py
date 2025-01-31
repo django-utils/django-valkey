@@ -2,11 +2,11 @@ from valkey.cluster import ValkeyCluster
 from valkey.typing import KeyT, EncodableT
 
 from django_valkey.base_client import _main_exceptions
-from django_valkey.client.default import SyncClientMethod
+from django_valkey.client.default import SyncClientMethods
 from django_valkey.exceptions import ConnectionInterrupted
 
 
-class DefaultClusterClient(SyncClientMethod):
+class BaseDefaultClusterClient:
     CONNECTION_FACTORY_PATH = (
         "django_valkey.cluster_cache.pool.ClusterConnectionFactory"
     )
@@ -54,6 +54,8 @@ class DefaultClusterClient(SyncClientMethod):
         client = self._get_client(write=True, client=client)
         return client.readwrite(target_nodes)
 
+
+class SyncClusterMethods(SyncClientMethods):
     def keys(
         self,
         pattern="*",
@@ -139,3 +141,7 @@ class DefaultClusterClient(SyncClientMethod):
     def invalidate_key_from_cache(self, client=None):
         client = self._get_client(client=client)
         return client.invalidate_key_from_cache()
+
+
+class DefaultClusterClient(BaseDefaultClusterClient, SyncClusterMethods):
+    pass

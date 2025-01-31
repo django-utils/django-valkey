@@ -11,9 +11,9 @@ from valkey import Valkey
 from valkey.exceptions import ConnectionError, ResponseError, TimeoutError
 from valkey.typing import EncodableT
 
-from django_valkey.client.default import DefaultClient
+from django_valkey.client.default import BaseDefaultClient, SyncClientMethods
 from django_valkey.exceptions import ConnectionInterrupted
-from django_valkey.typing import KeyT
+from django_valkey.typings import KeyT
 
 _main_exceptions = (ConnectionError, ResponseError, TimeoutError, socket.timeout)
 
@@ -33,32 +33,7 @@ def _is_expired(x, herd_timeout: int) -> bool:
     return val >= herd_timeout
 
 
-class HerdClient(DefaultClient):
-    def __init__(self, *args, **kwargs):
-        self._marker = Marker()
-        self._herd_timeout: int = getattr(settings, "CACHE_HERD_TIMEOUT", 60)
-        super().__init__(*args, **kwargs)
-
-    def _pack(self, value: Any, timeout) -> tuple[Marker, Any, int]:
-        herd_timeout = (timeout or self._backend.default_timeout) + int(time.time())
-        return self._marker, value, herd_timeout
-
-    def _unpack(self, value: tuple[Marker, Any, int]) -> tuple[Any, bool]:
-        try:
-            marker, unpacked, herd_timeout = value
-        except (ValueError, TypeError):
-            return value, False
-
-        if not isinstance(marker, Marker):
-            return value, False
-
-        now = time.time()
-        if herd_timeout < now:
-            x = now - herd_timeout
-            return unpacked, _is_expired(x, self._herd_timeout)
-
-        return unpacked, False
-
+class SyncHerdMethods(SyncClientMethods):
     def set(
         self,
         key: KeyT,
@@ -207,3 +182,34 @@ class HerdClient(DefaultClient):
 
         self.set(key, value, timeout=timeout, version=version, client=client)
         return True
+
+
+class BaseHerdClient(BaseDefaultClient):
+    def __init__(self, *args, **kwargs):
+        self._marker = Marker()
+        self._herd_timeout: int = getattr(settings, "CACHE_HERD_TIMEOUT", 60)
+        super().__init__(*args, **kwargs)
+
+    def _pack(self, value: Any, timeout) -> tuple[Marker, Any, int]:
+        herd_timeout = (timeout or self._backend.default_timeout) + int(time.time())
+        return self._marker, value, herd_timeout
+
+    def _unpack(self, value: tuple[Marker, Any, int]) -> tuple[Any, bool]:
+        try:
+            marker, unpacked, herd_timeout = value
+        except (ValueError, TypeError):
+            return value, False
+
+        if not isinstance(marker, Marker):
+            return value, False
+
+        now = time.time()
+        if herd_timeout < now:
+            x = now - herd_timeout
+            return unpacked, _is_expired(x, self._herd_timeout)
+
+        return unpacked, False
+
+
+class HerdClient(BaseHerdClient, SyncHerdMethods):
+    pass

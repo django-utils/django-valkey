@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from valkey.asyncio.lock import Lock
 
 
-class AsyncClientMethod(BaseClient):
+class AsyncClientMethods(BaseClient):
     async def aset(
         self,
         key,
@@ -1252,7 +1252,7 @@ class AsyncClientMethod(BaseClient):
     hrandfield = ahrandfield
 
 
-class AsyncDefaultClient(AsyncClientMethod):
+class BaseAsyncDefaultClient:
     CONNECTION_FACTORY_PATH = "django_valkey.async_cache.pool.AsyncConnectionFactory"
 
     def __contains__(self, item):
@@ -1298,3 +1298,7 @@ class AsyncDefaultClient(AsyncClientMethod):
             await self.connection_factory.disconnect(client)
 
     disconnect = adisconnect
+
+
+class AsyncDefaultClient(BaseAsyncDefaultClient, AsyncClientMethods):
+    pass

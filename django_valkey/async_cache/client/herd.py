@@ -9,7 +9,10 @@ from valkey import Valkey
 from valkey.exceptions import ConnectionError, ResponseError, TimeoutError
 from valkey.typing import EncodableT
 
-from django_valkey.async_cache.client import AsyncDefaultClient
+from django_valkey.async_cache.client.default import (
+    BaseAsyncDefaultClient,
+    AsyncClientMethods,
+)
 from django_valkey.client.herd import Marker, _is_expired
 from django_valkey.exceptions import ConnectionInterrupted
 from django_valkey.typings import KeyT
@@ -17,32 +20,7 @@ from django_valkey.typings import KeyT
 _main_exceptions = (ConnectionError, ResponseError, TimeoutError, socket.timeout)
 
 
-class AsyncHerdClient(AsyncDefaultClient):
-    def __init__(self, *args, **kwargs):
-        self._marker = Marker()
-        self._herd_timeout: int = getattr(settings, "CACHE_HERD_TIMEOUT", 60)
-        super().__init__(*args, **kwargs)
-
-    async def _pack(self, value: Any, timeout) -> tuple[Marker, Any, int]:
-        herd_timeout = (timeout or self._backend.default_timeout) + int(time.time())
-        return self._marker, value, herd_timeout
-
-    async def _unpack(self, value: tuple[Marker, Any, int]) -> tuple[Any, bool]:
-        try:
-            marker, unpacked, herd_timeout = value
-        except (ValueError, TypeError):
-            return value, False
-
-        if not isinstance(marker, Marker):
-            return value, False
-
-        now = time.time()
-        if herd_timeout < now:
-            x = now - herd_timeout
-            return unpacked, _is_expired(x, self._herd_timeout)
-
-        return unpacked, False
-
+class AsyncHerdMethods(AsyncClientMethods):
     async def aset(
         self,
         key: KeyT,
@@ -199,3 +177,34 @@ class AsyncHerdClient(AsyncDefaultClient):
         return True
 
     touch = atouch
+
+
+class BaseAsyncHerdClient(BaseAsyncDefaultClient):
+    def __init__(self, *args, **kwargs):
+        self._marker = Marker()
+        self._herd_timeout: int = getattr(settings, "CACHE_HERD_TIMEOUT", 60)
+        super().__init__(*args, **kwargs)
+
+    async def _pack(self, value: Any, timeout) -> tuple[Marker, Any, int]:
+        herd_timeout = (timeout or self._backend.default_timeout) + int(time.time())
+        return self._marker, value, herd_timeout
+
+    async def _unpack(self, value: tuple[Marker, Any, int]) -> tuple[Any, bool]:
+        try:
+            marker, unpacked, herd_timeout = value
+        except (ValueError, TypeError):
+            return value, False
+
+        if not isinstance(marker, Marker):
+            return value, False
+
+        now = time.time()
+        if herd_timeout < now:
+            x = now - herd_timeout
+            return unpacked, _is_expired(x, self._herd_timeout)
+
+        return unpacked, False
+
+
+class AsyncHerdClient(BaseAsyncHerdClient, AsyncHerdMethods):
+    pass
