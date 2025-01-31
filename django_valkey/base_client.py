@@ -1,9 +1,7 @@
 import builtins
 from collections.abc import Iterable
 import random
-import re
 import socket
-from contextlib import suppress
 from typing import (
     Any,
     TYPE_CHECKING,
@@ -22,9 +20,8 @@ from valkey.typing import EncodableT
 
 from django_valkey import pool
 from django_valkey.compressors.identity import IdentityCompressor
-from django_valkey.exceptions import CompressorError
 from django_valkey.serializers.pickle import PickleSerializer
-from django_valkey.util import CacheKey
+from django_valkey.util import make_key, make_pattern, encode, decode
 from django_valkey.typings import KeyT
 
 if TYPE_CHECKING:
@@ -32,12 +29,6 @@ if TYPE_CHECKING:
 
 
 _main_exceptions = (TimeoutError, ResponseError, ConnectionError, socket.timeout)
-
-special_re = re.compile("([*?[])")
-
-
-def glob_escape(s: str) -> str:
-    return special_re.sub(r"[\1]", s)
 
 
 class BaseClient:
@@ -127,59 +118,34 @@ class BaseClient:
         """
         Decode the given value.
         """
-        try:
-            value = int(value) if value.isdigit() else float(value)
-        except (ValueError, TypeError):
-            # Handle little values, chosen to be not compressed
-            with suppress(CompressorError):
-                value = self._compressor.decompress(value)
-            value = self._serializer.loads(value)
-        except AttributeError:
-            # if value is None:
-            return value
-        return value
+        return decode(value, serializer=self._serializer, compressor=self._compressor)
 
     def encode(self, value: EncodableT) -> bytes | int | float:
         """
         Encode the given value.
         """
-
-        if type(value) is not int and type(value) is not float:
-            value = self._serializer.dumps(value)
-            return self._compressor.compress(value)
-
-        return value
+        return encode(value, serializer=self._serializer, compressor=self._compressor)
 
     def make_key(
         self, key: KeyT, version: int | None = None, prefix: str | None = None
     ) -> KeyT:
         """Return key as a CacheKey instance so it has additional methods"""
-        if isinstance(key, CacheKey):
-            return key
-
-        if prefix is None:
-            prefix = self._backend.key_prefix
-
-        if version is None:
-            version = self._backend.version
-
-        return CacheKey(self._backend.key_func(key, prefix, version))
+        return make_key(
+            key,
+            version=version or self._backend.version,
+            prefix=prefix or self._backend.key_prefix,
+            key_func=self._backend.key_func,
+        )
 
     def make_pattern(
         self, pattern: str, version: int | None = None, prefix: str | None = None
     ) -> KeyT:
-        if isinstance(pattern, CacheKey):
-            return pattern
-
-        if prefix is None:
-            prefix = self._backend.key_prefix
-        prefix = glob_escape(prefix)
-
-        if version is None:
-            version = self._backend.version
-        version_str = glob_escape(str(version))
-
-        return CacheKey(self._backend.key_func(pattern, prefix, version_str))
+        return make_pattern(
+            pattern,
+            version=version or self._backend.version,
+            prefix=prefix or self._backend.key_prefix,
+            key_func=self._backend.key_func,
+        )
 
     def _decode_iterable_result(
         self, result: Any, convert_to_set: bool = True

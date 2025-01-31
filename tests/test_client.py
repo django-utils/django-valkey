@@ -159,7 +159,7 @@ class TestDefaultClient:
 
 
 class TestShardClient:
-    @patch("tests.test_client.DefaultClient.make_pattern")
+    @patch("django_valkey.base_client.BaseClient.make_pattern")
     @patch("tests.test_client.ShardClient.__init__", return_value=None)
     def test_delete_pattern_calls_scan_iter_with_count_if_itersize_given(
         self, init_mock, make_pattern_mock
@@ -178,7 +178,7 @@ class TestShardClient:
             count=10, match=make_pattern_mock.return_value
         )
 
-    @patch("tests.test_client.DefaultClient.make_pattern")
+    @patch("django_valkey.base_client.BaseClient.make_pattern")
     @patch("tests.test_client.ShardClient.__init__", return_value=None)
     def test_delete_pattern_calls_scan_iter(self, init_mock, make_pattern_mock):
         client = ShardClient()
@@ -194,7 +194,7 @@ class TestShardClient:
             match=make_pattern_mock.return_value
         )
 
-    @patch("tests.test_client.DefaultClient.make_pattern")
+    @patch("django_valkey.base_client.BaseClient.make_pattern")
     @patch("tests.test_client.ShardClient.__init__", return_value=None)
     def test_delete_pattern_calls_delete_for_given_keys(
         self, init_mock, make_pattern_mock
