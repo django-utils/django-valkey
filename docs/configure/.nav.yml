@@ -1,0 +1,5 @@
+nav:
+  - basic_configurations.md
+  - advanced_configurations.md
+  - sentinel_configurations.md
+  - compressors.md

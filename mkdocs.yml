@@ -1,0 +1,51 @@
+site_name: django valkey
+site_url: https://django-valkey.readthedocs.io/en/latest/
+site_description: django-valkey documentation
+repo_url: https://github.com/django-utils/django-valkey
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.snippets:
+      check_paths: true
+      base_path: ["."]
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+
+plugins:
+  - awesome-nav
+
+theme:
+  name: material
+  highlightjs: true
+  hljs_languages:
+    - python
+    - pycon
+
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to dark mode
+
+    - media: "(prefers-color-scheme: light)"
+      schema: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to system preference
+
+  features:
+    - content.code.copy
+

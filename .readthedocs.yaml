@@ -1,16 +1,15 @@
-version: "2"
+version: 2
 
 build:
   os: "ubuntu-lts-latest"
   tools:
-    python: "3.12"
+    python: "3.13"
 
   jobs:
     pre_build:
-      - pip install .
-      - pip install sphinx-pdj-theme
-sphinx:
-  configuration: docs/source/conf.py
+      - pip install mkdocs-material
+mkdocs:
+  configuration: mkdocs.yml
 
 formats:
   - pdf

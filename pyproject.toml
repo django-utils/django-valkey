@@ -60,10 +60,10 @@ pytest-django = "^4.10.0"
 pytest-mock = "^3.14.0"
 ruff = "^0.11.0"
 
-
 [tool.poetry.group.docs.dependencies]
-sphinx-pdj-theme = "^0.5.0"
-sphinx = ">=8.0.2"
+mkdocs = "^1.6.1"
+mkdocs-material = "^9.6.9"
+mkdocs-awesome-nav = "^3.0.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
