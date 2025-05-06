@@ -1,65 +1,20 @@
-import random
-import socket
-import time
-from typing import Tuple, Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
-from django.conf import settings
 from valkey import Valkey
-from valkey.exceptions import ConnectionError, ResponseError, TimeoutError
 from valkey.typing import KeyT, EncodableT
 
-from django_valkey.base_client import DEFAULT_TIMEOUT, Backend
+from django_valkey.base_client import (
+    DEFAULT_TIMEOUT,
+    Backend,
+    HerdCommonMethods,
+    _main_exceptions,
+)
 from django_valkey.client.default import DefaultClient
 from django_valkey.exceptions import ConnectionInterrupted
 
-_main_exceptions = (ConnectionError, ResponseError, TimeoutError, socket.timeout)
 
-
-class Marker:
-    """
-    Dummy class for use as
-    marker for herded keys.
-    """
-
-    pass
-
-
-def _is_expired(x, herd_timeout: int) -> bool:
-    if x >= herd_timeout:
-        return True
-    val = x + random.randint(1, herd_timeout)
-
-    if val >= herd_timeout:
-        return True
-    return False
-
-
-class HerdClient(DefaultClient):
-    def __init__(self, *args, **kwargs):
-        self._marker = Marker()
-        self._herd_timeout: int = getattr(settings, "CACHE_HERD_TIMEOUT", 60)
-        super().__init__(*args, **kwargs)
-
-    def _pack(self, value: Any, timeout) -> Tuple[Marker, Any, int]:
-        herd_timeout = (timeout or self._backend.default_timeout) + int(time.time())
-        return self._marker, value, herd_timeout
-
-    def _unpack(self, value: Tuple[Marker, Any, int]) -> Tuple[Any, bool]:
-        try:
-            marker, unpacked, herd_timeout = value
-        except (ValueError, TypeError):
-            return value, False
-
-        if not isinstance(marker, Marker):
-            return value, False
-
-        now = time.time()
-        if herd_timeout < now:
-            x = now - herd_timeout
-            return unpacked, _is_expired(x, self._herd_timeout)
-
-        return unpacked, False
-
+class HerdClient(HerdCommonMethods, DefaultClient):
     def set(
         self,
         key: KeyT,

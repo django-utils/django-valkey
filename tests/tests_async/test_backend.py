@@ -1,19 +1,23 @@
 import asyncio
 import contextlib
 import datetime
-from datetime import timedelta
 import threading
-from typing import Iterable, List, cast
+from collections.abc import Iterable
+from datetime import timedelta
+from typing import List, cast
 from unittest.mock import patch, AsyncMock
 
 import pytest
 import pytest_asyncio
-from django.core.cache import caches
-from django.core.cache.backends.base import DEFAULT_TIMEOUT
-from django.test import override_settings
+
 from pytest_django.fixtures import SettingsWrapper
 from pytest_mock import MockerFixture
 
+from django.core.cache import caches
+from django.core.cache.backends.base import DEFAULT_TIMEOUT, get_key_func
+from django.test import override_settings
+
+from django_valkey import util
 from django_valkey.async_cache.cache import AsyncValkeyCache
 from django_valkey.async_cache.client import AsyncHerdClient
 from django_valkey.serializers.json import JSONSerializer
@@ -258,10 +262,6 @@ class TestAsyncDjangoValkeyCache:
         mocker: MockerFixture,
         settings: SettingsWrapper,
     ):
-        # TODO: fix
-        # if isinstance(cache.client, AsyncShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
-
         tmp = await cache.client.get_client(write=True)
         pipeline = await tmp.pipeline()
         key = "key"
@@ -273,18 +273,18 @@ class TestAsyncDjangoValkeyCache:
         if isinstance(cache.client, AsyncHerdClient):
             default_timeout = cache.client._backend.default_timeout
             herd_timeout = (default_timeout + settings.CACHE_HERD_TIMEOUT) * 1000
-            herd_pack_value = await cache.client._pack(value, default_timeout)
-            mocked_set.assert_called_once_with(
-                await cache.client.make_key(key, version=None),
-                await cache.client.encode(herd_pack_value),
+            herd_pack_value = cache.client._pack(value, default_timeout)
+            mocked_set.assert_awaited_once_with(
+                cache.client.make_key(key, version=None),
+                cache.client.encode(herd_pack_value),
                 nx=False,
                 px=herd_timeout,
                 xx=False,
             )
         else:
-            mocked_set.assert_called_once_with(
-                await cache.client.make_key(key, version=None),
-                await cache.client.encode(value),
+            mocked_set.assert_awaited_once_with(
+                cache.client.make_key(key, version=None),
+                cache.client.encode(value),
                 nx=False,
                 px=cache.client._backend.default_timeout * 1000,
                 xx=False,
@@ -407,8 +407,6 @@ class TestAsyncDjangoValkeyCache:
             await cache.aincr("numnum")
 
     async def test_incr_ignore_check(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support argument ignore_key_check to incr")
         if isinstance(cache.client, AsyncHerdClient):
             pytest.skip("HerdClient doesn't support incr")
 
@@ -538,13 +536,12 @@ class TestAsyncDjangoValkeyCache:
     async def test_delete_pattern_with_custom_count(
         self, client_mock, cache: AsyncValkeyCache
     ):
-
         for key in ["foo-aa", "foo-ab", "foo-bb", "foo-bc"]:
             await cache.aset(key, "foo")
 
         await cache.adelete_pattern("*foo-a*", itersize=2)
 
-        client_mock.adelete_pattern.assert_called_once_with("*foo-a*", itersize=2)
+        client_mock.adelete_pattern.assert_awaited_once_with("*foo-a*", itersize=2)
 
     @patch(
         "django_valkey.async_cache.cache.AsyncValkeyCache.client",
@@ -563,7 +560,7 @@ class TestAsyncDjangoValkeyCache:
 
         await cache.adelete_pattern("*foo-a*")
 
-        client_mock.adelete_pattern.assert_called_once_with(
+        client_mock.adelete_pattern.assert_awaited_once_with(
             "*foo-a*", itersize=expected_count
         )
 
@@ -573,8 +570,8 @@ class TestAsyncDjangoValkeyCache:
         await cache.aclose()
 
     async def test_close_client(self, cache: AsyncValkeyCache, mocker: MockerFixture):
-        mock = mocker.patch.object(cache.client, "close", AsyncMock)
-        await cache.aclose()
+        mock = mocker.patch.object(cache.client, "close")
+        await cache.close()
         assert mock.called
 
     async def test_ttl(self, cache: AsyncValkeyCache):
@@ -743,9 +740,6 @@ class TestAsyncDjangoValkeyCache:
         assert not await cache.has_key("foobar")
 
     async def test_iter_keys(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support iter_keys")
-
         await cache.aset("foo1", 1)
         await cache.aset("foo2", 1)
         await cache.aset("foo3", 1)
@@ -758,9 +752,6 @@ class TestAsyncDjangoValkeyCache:
         assert result == {"foo1", "foo2", "foo3"}
 
     async def test_iter_keys_itersize(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support iter_keys")
-
         await cache.aset("foo1", 1)
         await cache.aset("foo2", 1)
         await cache.aset("foo3", 1)
@@ -773,9 +764,6 @@ class TestAsyncDjangoValkeyCache:
         assert len(result) == 3
 
     async def test_iter_keys_generator(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support iter_keys")
-
         await cache.aset("foo1", 1)
         await cache.aset("foo2", 1)
         await cache.aset("foo3", 1)
@@ -783,12 +771,28 @@ class TestAsyncDjangoValkeyCache:
         # Test generator object
         result = cache.aiter_keys("foo*")
         next_value = anext(result)  # noqa: F821
-        assert next_value is not None
+        assert await next_value is not None
+
+    async def test_scan(self, cache: AsyncValkeyCache):
+        await cache.set("foo1", 1)
+        await cache.set("foo2", 1)
+        await cache.set("foo3", 1)
+        cursor, res = await cache.scan(match="foo*", count=1)
+        assert res == ["foo1", "foo2", "foo3"]
+        assert cursor == 0
+
+    async def test_scan_with_count_1_doesnt_return_everything(
+        self, cache: AsyncValkeyCache
+    ):
+        for i in range(10):
+            await cache.set(f"foo{i}", 1)
+
+        cursor, res = await cache.scan(match="foo*", count=1)
+        assert len(res) != 10
+        _, res2 = await cache.scan(cursor=cursor, match="foo*")
+        assert len(set(res) ^ set(res2)) == len(res) + len(res2)
 
     async def test_primary_replica_switching(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
-
         cache = cast(AsyncValkeyCache, caches["sample"])
         client = cache.client
         client._server = ["foo", "bar"]
@@ -798,9 +802,6 @@ class TestAsyncDjangoValkeyCache:
         assert await client.get_client(write=False) == "Bar"
 
     async def test_primary_replica_switching_with_index(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
-
         cache = cast(AsyncValkeyCache, caches["sample"])
         client = cache.client
         client._server = ["foo", "bar"]
@@ -862,17 +863,77 @@ class TestAsyncDjangoValkeyCache:
         assert value_from_cache_after_clear is None
 
     async def test_hset(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
         assert await cache.ahset("foo_hash1", "foo1", "bar1") == 1
         await cache.ahset("foo_hash1", "foo2", "bar2")
         assert await cache.ahlen("foo_hash1") == 2
         assert await cache.ahexists("foo_hash1", "foo1")
         assert await cache.ahexists("foo_hash1", "foo2")
+        assert await cache.hget("foo_hash1", "foo1") == "bar1"
+        assert await cache.hget("foo_hash1", "foo2") == "bar2"
+
+    async def test_hset_mapping(self, cache: AsyncValkeyCache):
+        await cache.hset("foo_hash1", mapping={"foo1": "bar1", "foo2": "bar2"})
+
+        assert await cache.hlen("foo_hash1") == 2
+        assert await cache.hexists("foo_hash1", "foo1")
+        assert await cache.hexists("foo_hash1", "foo2")
+        assert await cache.hget("foo_hash1", "foo1") == "bar1"
+        assert await cache.hget("foo_hash1", "foo2") == "bar2"
+
+    async def test_hset_items(self, cache: AsyncValkeyCache):
+        await cache.hset("foo_hash1", items=["foo1", "bar1", "foo2", "bar2"])
+
+        assert await cache.hlen("foo_hash1") == 2
+        assert await cache.hexists("foo_hash1", "foo1")
+        assert await cache.hexists("foo_hash1", "foo2")
+        assert await cache.hget("foo_hash1", "foo1") == "bar1"
+        assert await cache.hget("foo_hash1", "foo2") == "bar2"
+
+    async def test_hsetnx(self, cache: AsyncValkeyCache):
+        assert await cache.hsetnx("foo_hash1", "foo1", "bar1") == 1
+        assert not await cache.hsetnx("foo_hash1", "foo1", "bar2")
+        assert await cache.hget("foo_hash1", "foo1") == "bar1"
+
+    async def test_hget(self, cache: AsyncValkeyCache):
+        await cache.hset("foo_hash1", "foo1", "bar1")
+        await cache.hset("foo_hash1", "foo2", 2)
+        await cache.hset("foo_hash1", "foo3", 3.1)
+
+        assert await cache.hget("foo_hash1", "foo1") == "bar1"
+        assert await cache.hget("foo_hash1", "foo2") == 2
+        assert await cache.hget("foo_hash1", "foo3") == 3.1
+
+    async def test_hmget(self, cache: AsyncValkeyCache):
+        await cache.hset("foo_hash1", mapping={"foo1": "bar1", "foo2": "bar2"})
+        assert await cache.hmget("foo_hash1", "foo1", "foo2") == {
+            "foo1": "bar1",
+            "foo2": "bar2",
+        }
+
+    async def test_hgetall(self, cache: AsyncValkeyCache):
+        await cache.hset("foo_hash1", "foo1", "bar1")
+        await cache.hset("foo_hash1", "foo2", 2)
+        await cache.hset("foo_hash1", "foo3", 3.1)
+        await cache.hset("foo_hash1", 4, 4)
+
+        all = await cache.hgetall("foo_hash1")
+        assert all == {"foo1": "bar1", "foo2": 2, "foo3": 3.1, "4": 4}
+
+    async def test_hincrby(self, cache: AsyncValkeyCache):
+        await cache.hset("foo_hash1", "foo1", 1)
+        assert await cache.hincrby("foo_hash1", "foo1") == 2
+        assert await cache.hget("foo_hash1", "foo1") == 2
+        assert await cache.hincrby("foo_hash1", "foo1", 3) == 5
+        assert await cache.hget("foo_hash1", "foo1") == 5
+
+    async def test_hincrbyfloat(self, cache: AsyncValkeyCache):
+        await cache.hset("foo_hash1", "foo1", 1.1)
+        assert await cache.hincrbyfloat("foo_hash1", "foo1") == 2.1
+        assert await cache.hget("foo_hash1", "foo1") == 2.1
+        assert await cache.hincrbyfloat("foo_hash1", "foo1", 3.1) == 5.2
+        assert await cache.hget("foo_hash1", "foo1") == 5.2
 
     async def test_hdel(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
         await cache.ahset("foo_hash2", "foo1", "bar1")
         await cache.ahset("foo_hash2", "foo2", "bar2")
         assert await cache.ahlen("foo_hash2") == 2
@@ -883,8 +944,6 @@ class TestAsyncDjangoValkeyCache:
         assert await cache.ahexists("foo_hash2", "foo2")
 
     async def test_hlen(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
         assert await cache.ahlen("foo_hash3") == 0
         await cache.ahset("foo_hash3", "foo1", "bar1")
         assert await cache.ahlen("foo_hash3") == 1
@@ -892,8 +951,6 @@ class TestAsyncDjangoValkeyCache:
         assert await cache.ahlen("foo_hash3") == 2
 
     async def test_hkeys(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
         await cache.ahset("foo_hash4", "foo1", "bar1")
         await cache.ahset("foo_hash4", "foo2", "bar2")
         await cache.ahset("foo_hash4", "foo3", "bar3")
@@ -903,11 +960,29 @@ class TestAsyncDjangoValkeyCache:
             assert keys[i] == f"foo{i + 1}"
 
     async def test_hexists(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
         await cache.ahset("foo_hash5", "foo1", "bar1")
         assert await cache.ahexists("foo_hash5", "foo1")
         assert not await cache.ahexists("foo_hash5", "foo")
+
+    async def test_hvals(self, cache: AsyncValkeyCache):
+        await cache.hset(
+            "foo_hash6", mapping={"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
+        )
+        assert await cache.hvals("foo_hash6") == ["bar1", "bar2", "bar3"]
+
+    async def test_hstrlen(self, cache: AsyncValkeyCache):
+        key1 = util.make_key("foo1", get_key_func(None))
+        key2 = util.make_key("foo2", get_key_func(None))
+        valkey = await cache.client.get_client(write=False)
+
+        await cache.hset("foo_hash7", key1, "some value")
+        await cache.hset("foo_hash7", key2, "some other value")
+        assert await cache.hstrlen("foo_hash7", key1) == await valkey.hstrlen(
+            "foo_hash7", key1
+        )
+        assert await cache.hstrlen("foo_hash7", key2) == await valkey.hstrlen(
+            "foo_hash7", key2
+        )
 
     async def test_sadd(self, cache: AsyncValkeyCache):
         assert await cache.asadd("foo", "bar") == 1
@@ -930,26 +1005,17 @@ class TestAsyncDjangoValkeyCache:
         assert await cache.ascard("foo") == 2
 
     async def test_sdiff(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
-
         await cache.asadd("foo1", "bar1", "bar2")
         await cache.asadd("foo2", "bar2", "bar3")
         assert await cache.asdiff("foo1", "foo2") == {"bar1"}
 
     async def test_sdiffstore(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
-
         await cache.asadd("foo1", "bar1", "bar2")
         await cache.asadd("foo2", "bar2", "bar3")
         assert await cache.asdiffstore("foo3", "foo1", "foo2") == 1
         assert await cache.asmembers("foo3") == {"bar1"}
 
     async def test_sdiffstore_with_keys_version(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
-
         await cache.asadd("foo1", "bar1", "bar2", version=2)
         await cache.asadd("foo2", "bar2", "bar3", version=2)
         assert await cache.asdiffstore("foo3", "foo1", "foo2", version_keys=2) == 1
@@ -958,9 +1024,6 @@ class TestAsyncDjangoValkeyCache:
     async def test_sdiffstore_with_different_keys_versions_without_initial_set_in_version(
         self, cache: AsyncValkeyCache
     ):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
-
         await cache.asadd("foo1", "bar1", "bar2", version=1)
         await cache.asadd("foo2", "bar2", "bar3", version=2)
         assert await cache.asdiffstore("foo3", "foo1", "foo2", version_keys=2) == 0
@@ -968,25 +1031,22 @@ class TestAsyncDjangoValkeyCache:
     async def test_sdiffstore_with_different_keys_versions_with_initial_set_in_version(
         self, cache: AsyncValkeyCache
     ):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
-
         await cache.asadd("foo1", "bar1", "bar2", version=2)
         await cache.asadd("foo2", "bar2", "bar3", version=1)
         assert await cache.asdiffstore("foo3", "foo1", "foo2", version_keys=2) == 2
 
     async def test_sinter(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
-
         await cache.asadd("foo1", "bar1", "bar2")
         await cache.asadd("foo2", "bar2", "bar3")
         assert await cache.asinter("foo1", "foo2") == {"bar2"}
 
-    async def test_interstore(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
+    async def test_sintercard(self, cache: AsyncValkeyCache):
+        await cache.sadd("set1", "a", "b", "c")
+        await cache.sadd("set2", "b", "c", "d")
+        assert await cache.sintercard("set1", "set2") == 2
+        assert await cache.sintercard("set1", "set2", limit=1) == 1
 
+    async def test_interstore(self, cache: AsyncValkeyCache):
         await cache.asadd("foo1", "bar1", "bar2")
         await cache.asadd("foo2", "bar2", "bar3")
         assert await cache.asinterstore("foo3", "foo1", "foo2") == 1
@@ -1003,9 +1063,6 @@ class TestAsyncDjangoValkeyCache:
         assert await cache.asismember("baz", 2) is False
 
     async def test_smove(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
-
         await cache.asadd("foo1", "bar1", "bar2")
         await cache.asadd("foo2", "bar2", "bar3")
         assert await cache.asmove("foo1", "foo2", "bar1") is True
@@ -1029,7 +1086,11 @@ class TestAsyncDjangoValkeyCache:
 
     async def test_srandmember(self, cache: AsyncValkeyCache):
         await cache.asadd("foo", "bar1", "bar2")
-        assert await cache.asrandmember("foo", 1) in [["bar1"], ["bar2"]]
+        assert await cache.asrandmember("foo", 1, convert_to_set=False) in [
+            ["bar1"],
+            ["bar2"],
+        ]
+        assert await cache.asrandmember("foo", 1) in [{"bar1"}, {"bar2"}]
 
     async def test_srem(self, cache: AsyncValkeyCache):
         await cache.asadd("foo", "bar1", "bar2")
@@ -1038,14 +1099,15 @@ class TestAsyncDjangoValkeyCache:
 
     async def test_sscan(self, cache: AsyncValkeyCache):
         await cache.asadd("foo", "bar1", "bar2")
-        items = await cache.asscan("foo")
+        cursor, items = await cache.asscan("foo")
         assert items == {"bar1", "bar2"}
+        assert cursor == 0
 
     async def test_sscan_with_match(self, cache: AsyncValkeyCache):
         if cache.client._has_compression_enabled():
             pytest.skip("Compression is enabled, sscan with match is not supported")
         await cache.asadd("foo", "bar1", "bar2", "zoo")
-        items = await cache.asscan("foo", match="zoo")
+        _, items = await cache.asscan("foo", match="zoo")
         assert items == {"zoo"}
 
     async def test_sscan_iter(self, cache: AsyncValkeyCache):
@@ -1081,17 +1143,11 @@ class TestAsyncDjangoValkeyCache:
         ]
 
     async def test_sunion(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
-
         await cache.asadd("foo1", "bar1", "bar2")
         await cache.asadd("foo2", "bar2", "bar3")
         assert await cache.asunion("foo1", "foo2") == {"bar1", "bar2", "bar3"}
 
     async def test_sunionstore(self, cache: AsyncValkeyCache):
-        # if isinstance(cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support get_client")
-
         await cache.asadd("foo1", "bar1", "bar2")
         await cache.asadd("foo2", "bar2", "bar3")
         assert await cache.asunionstore("foo3", "foo1", "foo2") == 3
