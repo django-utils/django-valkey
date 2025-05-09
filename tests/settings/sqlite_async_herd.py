@@ -37,3 +37,5 @@ INSTALLED_APPS = [
 CACHE_HERD_TIMEOUT = 2
 
 USE_TZ = False
+
+ROOT_URLCONF = "tests.settings.urls"

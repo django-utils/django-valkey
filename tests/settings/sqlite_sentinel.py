@@ -9,7 +9,7 @@ CACHES = {
         "BACKEND": "django_valkey.cache.ValkeyCache",
         "LOCATION": ["valkey://mymaster?db=1"],
         "OPTIONS": {
-            "CLIENT_CLASS": "django_valkey.client.DefaultClient",
+            "CLIENT_CLASS": "django_valkey.client.SentinelClient",
             "SENTINELS": SENTINELS,
         },
     },

@@ -1,6 +1,7 @@
 import contextlib
 import copy
-from typing import Iterable, cast
+from collections.abc import Iterable
+from typing import cast
 
 import pytest
 from pytest import LogCaptureFixture
@@ -105,9 +106,6 @@ class TestDjangoValkeyCacheEscapePrefix:
     async def test_iter_keys(
         self, key_prefix_cache: AsyncValkeyCache, with_prefix_cache: AsyncValkeyCache
     ):
-        # if isinstance(key_prefix_cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support iter_keys")
-
         await key_prefix_cache.aset("a", "1")
         await with_prefix_cache.aset("b", "2")
         async with contextlib.aclosing(key_prefix_cache.aiter_keys("*")) as keys:
@@ -133,9 +131,6 @@ async def test_custom_key_function(cache: AsyncValkeyCache, settings: SettingsWr
         "REVERSE_KEY_FUNCTION"
     ] = "tests.test_cache_options.reverse_key"
     settings.CACHES = caches_setting
-
-    # if isinstance(cache.client, ShardClient):
-    #     pytest.skip("ShardClient doesn't support get_client")
 
     for key in ["foo-aa", "foo-ab", "foo-bb", "foo-bc"]:
         await cache.aset(key, "foo")
