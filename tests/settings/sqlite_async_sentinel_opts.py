@@ -47,3 +47,5 @@ CACHES = {
 INSTALLED_APPS = ["django.contrib.sessions"]
 
 USE_TZ = False
+
+ROOT_URLCONF = "tests.settings.urls"

@@ -36,3 +36,5 @@ INSTALLED_APPS = [
 ]
 
 USE_TZ = False
+
+ROOT_URLCONF = "tests.settings.urls"

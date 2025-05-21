@@ -1,8 +1,9 @@
 import datetime
 import threading
 import time
+from collections.abc import Iterable
 from datetime import timedelta
-from typing import Iterable, List, cast
+from typing import List, cast
 from unittest.mock import patch
 
 import pytest
@@ -14,6 +15,7 @@ from pytest_mock import MockerFixture
 
 from django_valkey.cache import ValkeyCache
 from django_valkey.client import ShardClient, herd
+from django_valkey.cluster_cache.client import DefaultClusterClient
 from django_valkey.serializers.json import JSONSerializer
 from django_valkey.serializers.msgpack import MSGPackSerializer
 from django_valkey.serializers.pickle import PickleSerializer
@@ -40,7 +42,7 @@ class TestDjangoValkeyCache:
         if not isinstance(cache.client, ShardClient):
             raw_client = cache.client._get_client(write=False, client=None)
         else:
-            raw_client = cache.client.get_server(":1:test_key")
+            raw_client = cache.client._get_client(key=":1:test_key")
         assert raw_client.get(":1:test_key") == b"1"
 
     def test_set_float(self, cache: ValkeyCache):
@@ -52,7 +54,7 @@ class TestDjangoValkeyCache:
         if not isinstance(cache.client, ShardClient):
             raw_client = cache.client._get_client(write=False, client=None)
         else:
-            raw_client = cache.client.get_server(":1:test_key2")
+            raw_client = cache.client._get_client(key=":1:test_key2")
         assert raw_client.get(":1:test_key2") == b"1.1"
 
     def test_setnx(self, cache: ValkeyCache):
@@ -98,7 +100,7 @@ class TestDjangoValkeyCache:
         res = cache.get("ключ")
         assert res == "value"
 
-    def test_save_and_integer(self, cache: ValkeyCache):
+    def test_save_an_integer(self, cache: ValkeyCache):
         cache.set("test_key", 2)
         res = cache.get("test_key", "Foo")
 
@@ -222,7 +224,9 @@ class TestDjangoValkeyCache:
         assert res == {"a": 1, "b": 2, "c": 3}
 
     def test_mget(self, cache: ValkeyCache):
-        if isinstance(cache.client, ShardClient):
+        if isinstance(cache.client, ShardClient) or isinstance(
+            cache.client, DefaultClusterClient
+        ):
             pytest.skip()
         cache.set("a", 1)
         cache.set("b", 2)
@@ -239,13 +243,28 @@ class TestDjangoValkeyCache:
         res = cache.get_many(["a", "ب", "c"])
         assert res == {"a": "1", "ب": "2", "c": "الف"}
 
+    def test_mget_unicode(self, cache: ValkeyCache):
+        if isinstance(cache.client, ShardClient) or isinstance(
+            cache.client, DefaultClusterClient
+        ):
+            pytest.skip()
+
+        cache.set("fooa", "1")
+        cache.set("fooب", "2")
+        cache.set("fooc", "الف")
+
+        res = cache.mget(["fooa", "fooب", "fooc"])
+        assert res == {"fooa": "1", "fooب": "2", "fooc": "الف"}
+
     def test_set_many(self, cache: ValkeyCache):
         cache.set_many({"a": 1, "b": 2, "c": 3})
         res = cache.get_many(["a", "b", "c"])
         assert res == {"a": 1, "b": 2, "c": 3}
 
     def test_mset(self, cache: ValkeyCache):
-        if isinstance(cache.client, ShardClient):
+        if isinstance(cache.client, ShardClient) or isinstance(
+            cache.client, DefaultClusterClient
+        ):
             pytest.skip()
         cache.mset({"a": 1, "b": 2, "c": 3})
         res = cache.mget(["a", "b", "c"])
@@ -517,6 +536,9 @@ class TestDjangoValkeyCache:
         assert my_value == "hello world!"
 
     def test_delete_pattern(self, cache: ValkeyCache):
+        if isinstance(cache.client, DefaultClusterClient):
+            pytest.skip("cluster client has a specific test")
+
         for key in ["foo-aa", "foo-ab", "foo-bb", "foo-bc"]:
             cache.set(key, "foo")
 
@@ -531,6 +553,9 @@ class TestDjangoValkeyCache:
 
     @patch("django_valkey.cache.ValkeyCache.client")
     def test_delete_pattern_with_custom_count(self, client_mock, cache: ValkeyCache):
+        if isinstance(cache.client, DefaultClusterClient):
+            pytest.skip("cluster client has a specific test")
+
         for key in ["foo-aa", "foo-ab", "foo-bb", "foo-bc"]:
             cache.set(key, "foo")
 
@@ -546,6 +571,9 @@ class TestDjangoValkeyCache:
         cache: ValkeyCache,
         settings: SettingsWrapper,
     ):
+        if isinstance(cache.client, DefaultClusterClient):
+            pytest.skip("cluster client has a specific test")
+
         for key in ["foo-aa", "foo-ab", "foo-bb", "foo-bc"]:
             cache.set(key, "foo")
         expected_count = settings.DJANGO_VALKEY_SCAN_ITERSIZE
@@ -714,6 +742,11 @@ class TestDjangoValkeyCache:
         lock.release()
         assert not cache.has_key("foobar")
 
+    def test_lock_context_manager(self, cache: ValkeyCache):
+        with cache.lock("foobar"):
+            assert cache.has_key("foobar")
+        assert not cache.has_key("foobar")
+
     def test_lock_released_by_thread(self, cache: ValkeyCache):
         lock = cache.lock("foobar", thread_local=False)
         lock.acquire(blocking=True)
@@ -766,8 +799,7 @@ class TestDjangoValkeyCache:
 
     def test_primary_replica_switching(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
-
+            pytest.skip("shard client handles connections differently")
         cache = cast(ValkeyCache, caches["sample"])
         client = cache.client
         client._server = ["foo", "bar"]
@@ -842,7 +874,7 @@ class TestDjangoValkeyCache:
 
     def test_hset(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+            pytest.skip("ShardClient doesn't support hash operations")
         cache.hset("foo_hash1", "foo1", "bar1")
         cache.hset("foo_hash1", "foo2", "bar2")
         assert cache.hlen("foo_hash1") == 2
@@ -851,7 +883,7 @@ class TestDjangoValkeyCache:
 
     def test_hdel(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+            pytest.skip("ShardClient doesn't support hash operations")
         cache.hset("foo_hash2", "foo1", "bar1")
         cache.hset("foo_hash2", "foo2", "bar2")
         assert cache.hlen("foo_hash2") == 2
@@ -863,7 +895,7 @@ class TestDjangoValkeyCache:
 
     def test_hlen(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+            pytest.skip("ShardClient doesn't support hash operations")
         assert cache.hlen("foo_hash3") == 0
         cache.hset("foo_hash3", "foo1", "bar1")
         assert cache.hlen("foo_hash3") == 1
@@ -872,7 +904,7 @@ class TestDjangoValkeyCache:
 
     def test_hkeys(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+            pytest.skip("ShardClient doesn't support hash operations")
         cache.hset("foo_hash4", "foo1", "bar1")
         cache.hset("foo_hash4", "foo2", "bar2")
         cache.hset("foo_hash4", "foo3", "bar3")
@@ -883,7 +915,7 @@ class TestDjangoValkeyCache:
 
     def test_hexists(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+            pytest.skip("ShardClient doesn't support hash operations")
         cache.hset("foo_hash5", "foo1", "bar1")
         assert cache.hexists("foo_hash5", "foo1")
         assert not cache.hexists("foo_hash5", "foo")
@@ -898,7 +930,7 @@ class TestDjangoValkeyCache:
         if not isinstance(cache.client, ShardClient):
             raw_client = cache.client._get_client(write=False, client=None)
         else:
-            raw_client = cache.client.get_server(":1:foo")
+            raw_client = cache.client._get_client(key=":1:foo")
         assert raw_client.smembers(":1:foo") == [b"1"]
 
     def test_sadd_float(self, cache: ValkeyCache):
@@ -907,7 +939,7 @@ class TestDjangoValkeyCache:
         if not isinstance(cache.client, ShardClient):
             raw_client = cache.client._get_client(write=False, client=None)
         else:
-            raw_client = cache.client.get_server(":1:foo")
+            raw_client = cache.client._get_client(key=":1:foo")
         assert raw_client.smembers(":1:foo") == [b"1.2"]
 
     def test_scard(self, cache: ValkeyCache):
@@ -916,7 +948,10 @@ class TestDjangoValkeyCache:
 
     def test_sdiff(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+            pytest.skip("ShardClient doesn't support sdiff")
+
+        if isinstance(cache.client, DefaultClusterClient):
+            pytest.skip("cluster client has a specific test")
 
         cache.sadd("foo1", "bar1", "bar2")
         cache.sadd("foo2", "bar2", "bar3")
@@ -924,7 +959,10 @@ class TestDjangoValkeyCache:
 
     def test_sdiffstore(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+            pytest.skip("ShardClient doesn't support sdiffstore")
+
+        if isinstance(cache.client, DefaultClusterClient):
+            pytest.skip("cluster client has a specific test")
 
         cache.sadd("foo1", "bar1", "bar2")
         cache.sadd("foo2", "bar2", "bar3")
@@ -933,7 +971,10 @@ class TestDjangoValkeyCache:
 
     def test_sdiffstore_with_keys_version(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+            pytest.skip("ShardClient doesn't support sdiffstore")
+
+        if isinstance(cache.client, DefaultClusterClient):
+            pytest.skip("cluster client has a specific test")
 
         cache.sadd("foo1", "bar1", "bar2", version=2)
         cache.sadd("foo2", "bar2", "bar3", version=2)
@@ -944,7 +985,10 @@ class TestDjangoValkeyCache:
         self, cache: ValkeyCache
     ):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+            pytest.skip("ShardClient doesn't support sdiffstore")
+
+        if isinstance(cache.client, DefaultClusterClient):
+            pytest.skip("cluster client has a specific test")
 
         cache.sadd("foo1", "bar1", "bar2", version=1)
         cache.sadd("foo2", "bar2", "bar3", version=2)
@@ -954,7 +998,10 @@ class TestDjangoValkeyCache:
         self, cache: ValkeyCache
     ):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+            pytest.skip("ShardClient doesn't support sdiffstore")
+
+        if isinstance(cache.client, DefaultClusterClient):
+            pytest.skip("cluster client has a specific test")
 
         cache.sadd("foo1", "bar1", "bar2", version=2)
         cache.sadd("foo2", "bar2", "bar3", version=1)
@@ -962,15 +1009,21 @@ class TestDjangoValkeyCache:
 
     def test_sinter(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+            pytest.skip("ShardClient doesn't support sinter")
+
+        if isinstance(cache.client, DefaultClusterClient):
+            pytest.skip("cluster client has a specific test")
 
         cache.sadd("foo1", "bar1", "bar2")
         cache.sadd("foo2", "bar2", "bar3")
         assert cache.sinter("foo1", "foo2") == {"bar2"}
 
-    def test_interstore(self, cache: ValkeyCache):
+    def test_sinterstore(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+            pytest.skip("ShardClient doesn't support sinterstore")
+
+        if isinstance(cache.client, DefaultClusterClient):
+            pytest.skip("cluster client has a specific test")
 
         cache.sadd("foo1", "bar1", "bar2")
         cache.sadd("foo2", "bar2", "bar3")
@@ -1063,8 +1116,11 @@ class TestDjangoValkeyCache:
         assert cache.sismember("foo", False) is False
 
     def test_smove(self, cache: ValkeyCache):
-        if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+        # if isinstance(cache.client, ShardClient):
+        #     pytest.skip("ShardClient doesn't support get_client")
+
+        if isinstance(cache.client, DefaultClusterClient):
+            pytest.skip("cluster client has a specific test")
 
         cache.sadd("foo1", "bar1", "bar2")
         cache.sadd("foo2", "bar2", "bar3")
@@ -1128,7 +1184,10 @@ class TestDjangoValkeyCache:
 
     def test_sunion(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+            pytest.skip("ShardClient doesn't support sunion")
+
+        if isinstance(cache.client, DefaultClusterClient):
+            pytest.skip("cluster client has a specific test")
 
         cache.sadd("foo1", "bar1", "bar2")
         cache.sadd("foo2", "bar2", "bar3")
@@ -1136,7 +1195,10 @@ class TestDjangoValkeyCache:
 
     def test_sunionstore(self, cache: ValkeyCache):
         if isinstance(cache.client, ShardClient):
-            pytest.skip("ShardClient doesn't support get_client")
+            pytest.skip("ShardClient doesn't support sunionstore")
+
+        if isinstance(cache.client, DefaultClusterClient):
+            pytest.skip("cluster client has a specific test")
 
         cache.sadd("foo1", "bar1", "bar2")
         cache.sadd("foo2", "bar2", "bar3")

@@ -1,23 +1,45 @@
-from typing import Iterable
+import copy
+from collections.abc import Iterable
+from typing import cast
 
 import pytest
 import pytest_asyncio
-from django.core.cache import cache as default_cache
+from pytest_django.fixtures import SettingsWrapper
+
+from asgiref.compatibility import iscoroutinefunction
+from django.core.cache import cache as default_cache, caches
 
 from django_valkey.base import BaseValkeyCache
-
+from django_valkey.cache import ValkeyCache
 
 # for some reason `isawaitable` doesn't work here
-try:
+if iscoroutinefunction(default_cache.clear):
 
     @pytest_asyncio.fixture(loop_scope="session")
     async def cache():
         yield default_cache
         await default_cache.aclear()
 
-except Exception:
+else:
 
     @pytest.fixture
     def cache() -> Iterable[BaseValkeyCache]:
         yield default_cache
         default_cache.clear()
+
+
+@pytest.fixture
+def key_prefix_cache(
+    cache: ValkeyCache, settings: SettingsWrapper
+) -> Iterable[ValkeyCache]:
+    caches_setting = copy.deepcopy(settings.CACHES)
+    caches_setting["default"]["KEY_PREFIX"] = "*"
+    settings.CACHES = caches_setting
+    yield cache
+
+
+@pytest.fixture
+def with_prefix_cache() -> Iterable[ValkeyCache]:
+    with_prefix = cast(ValkeyCache, caches["with_prefix"])
+    yield with_prefix
+    with_prefix.clear()
