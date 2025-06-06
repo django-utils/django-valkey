@@ -2,7 +2,7 @@ VERSION = (0, 2, 1)
 __version__ = ".".join(map(str, VERSION))
 
 
-def get_valkey_connection(alias="default", write=True):
+def get_valkey_connection(alias="default", write=True, key=None):
     """
     Helper used for obtaining a raw valkey client.
     """
@@ -17,5 +17,8 @@ def get_valkey_connection(alias="default", write=True):
 
     if not hasattr(cache.client, "get_client"):
         raise NotImplementedError(error_message)
+
+    if hasattr(cache.client, "get_server_name"):
+        return cache.client.get_client(key=key)
 
     return cache.client.get_client(write)

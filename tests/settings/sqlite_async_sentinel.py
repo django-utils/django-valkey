@@ -11,7 +11,7 @@ CACHES = {
         "BACKEND": "django_valkey.async_cache.cache.AsyncValkeyCache",
         "LOCATION": ["valkey://mymaster?db=1"],
         "OPTIONS": {
-            "CLIENT_CLASS": "django_valkey.async_cache.client.AsyncDefaultClient",
+            "CLIENT_CLASS": "django_valkey.async_cache.client.AsyncSentinelClient",
             "SENTINELS": SENTINELS,
         },
     },
@@ -45,3 +45,5 @@ CACHES = {
 INSTALLED_APPS = ["django.contrib.sessions"]
 
 USE_TZ = False
+
+ROOT_URLCONF = "tests.settings.urls"

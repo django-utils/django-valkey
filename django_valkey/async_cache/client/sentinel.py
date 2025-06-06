@@ -30,8 +30,8 @@ class AsyncSentinelClient(AsyncDefaultClient):
 
         super().__init__(server, params, backend)
 
-    async def aconnect(self, *args, **kwargs):
-        connection = await super().aconnect(*args, **kwargs)
+    async def connect(self, *args, **kwargs):
+        connection = await super().connect(*args, **kwargs)
         if not isinstance(connection.connection_pool, SentinelConnectionPool):
             error_message = (
                 "Settings DJANGO_VALKEY_CONNECTION_FACTORY or "
@@ -40,5 +40,3 @@ class AsyncSentinelClient(AsyncDefaultClient):
             raise ImproperlyConfigured(error_message)
 
         return connection
-
-    connect = aconnect

@@ -1,77 +1,213 @@
 import contextlib
 import copy
-from typing import Iterable, cast
+from collections.abc import Iterable
+from typing import cast
 
 import pytest
 from pytest import LogCaptureFixture
 import pytest_asyncio
 from pytest_django.fixtures import SettingsWrapper
 
-from django.core.cache import caches
+from django.core.cache import caches, cache as default_cache
 
 from valkey.exceptions import ConnectionError
 
 from django_valkey.async_cache.cache import AsyncValkeyCache
+from django_valkey.async_cache.client import AsyncHerdClient, AsyncDefaultClient
 
+methods_with_no_parameters = {"clear", "close"}
 
-@pytest_asyncio.fixture
-async def ignore_exceptions_cache(settings: SettingsWrapper) -> AsyncValkeyCache:
-    caches_settings = copy.deepcopy(settings.CACHES)
-    caches_settings["doesnotexist"]["OPTIONS"]["IGNORE_EXCEPTIONS"] = True
-    caches_settings["doesnotexist"]["OPTIONS"]["LOG_IGNORE_EXCEPTIONS"] = True
-    settings.CACHES = caches_settings
-    settings.DJANGO_VALKEY_IGNORE_EXCEPTIONS = True
-    settings.DJANGO_VALKEY_LOG_IGNORE_EXCEPTIONS = True
-    return cast(AsyncValkeyCache, caches["doesnotexist"])
+methods_with_one_required_parameters = {
+    "decr",
+    "delete",
+    "delete_many",
+    "delete_pattern",
+    "get",
+    "get_many",
+    "has_key",
+    "hkeys",
+    "hlen",
+    "incr",
+    "incr_version",
+    "keys",
+    "lock",
+    "mget",
+    "pttl",
+    "persist",
+    "scard",
+    "sdiff",
+    "sinter",
+    "smembers",
+    "spop",
+    "srandmember",
+    "sscan",
+    "sunion",
+    "touch",
+    "ttl",
+}
+methods_with_two_required_parameters = {
+    "add",
+    "expire",
+    "expire_at",
+    "hdel",
+    "hexists",
+    "pexpire",
+    "pexpire_at",
+    "sadd",
+    "sdiffstore",
+    "set",
+    "sinterstore",
+    "sismember",
+    "smismember",
+    "srem",
+    "sunionstore",
+}
+methods_with_three_required_parameters = {"hset", "smove"}
+methods_taking_dictionary = {"mset", "set_many"}
+iter_methods = {
+    "iter_keys",
+    "sscan_iter",
+}
+
+no_herd_method = {
+    "incr",
+    "decr",
+}
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_get_django_omit_exceptions_many_returns_default_arg(
-    ignore_exceptions_cache: AsyncValkeyCache,
-):
-    assert ignore_exceptions_cache._ignore_exceptions is True
-    assert await ignore_exceptions_cache.aget_many(["key1", "key2", "key3"]) == {}
+class TestDjangoValkeyOmitException:
+    @pytest_asyncio.fixture
+    async def conf_cache(self, settings: SettingsWrapper):
+        caches_settings = copy.deepcopy(settings.CACHES)
+        settings.CACHES = caches_settings
+        return caches_settings
 
+    @pytest_asyncio.fixture
+    async def conf_cache_to_ignore_exception(
+        self, settings: SettingsWrapper, conf_cache
+    ):
+        conf_cache["doesnotexist"]["OPTIONS"]["IGNORE_EXCEPTIONS"] = True
+        conf_cache["doesnotexist"]["OPTIONS"]["LOG_IGNORE_EXCEPTIONS"] = True
+        settings.DJANGO_VALKEY_IGNORE_EXCEPTIONS = True
+        settings.DJANGO_VALKEY_LOG_IGNORE_EXCEPTIONS = True
 
-@pytest.mark.asyncio(loop_scope="session")
-async def test_get_django_omit_exceptions(
-    caplog: LogCaptureFixture, ignore_exceptions_cache: AsyncValkeyCache
-):
-    assert ignore_exceptions_cache._ignore_exceptions is True
-    assert ignore_exceptions_cache._log_ignored_exceptions is True
+    @pytest_asyncio.fixture
+    async def ignore_exceptions_cache(
+        self, conf_cache_to_ignore_exception
+    ) -> AsyncValkeyCache:
+        return cast(AsyncValkeyCache, caches["doesnotexist"])
 
-    assert await ignore_exceptions_cache.aget("key") is None
-    assert await ignore_exceptions_cache.aget("key", "default") == "default"
-    assert await ignore_exceptions_cache.aget("key", default="default") == "default"
+    async def test_methods_with_no_argument_omit_exception(
+        self, ignore_exceptions_cache: AsyncValkeyCache, subtests
+    ):
+        for m in methods_with_no_parameters:
+            method = getattr(ignore_exceptions_cache, m)
+            with subtests.test(method=method):
+                await method()
 
-    assert len(caplog.records) == 3
-    assert all(
-        record.levelname == "ERROR" and record.msg == "Exception ignored"
-        for record in caplog.records
+    async def test_methods_with_one_argument_omit_exception(
+        self, ignore_exceptions_cache: AsyncValkeyCache, subtests
+    ):
+        for m in methods_with_one_required_parameters:
+            method = getattr(ignore_exceptions_cache, m)
+            with subtests.test(method=method):
+                if (
+                    isinstance(default_cache.client, AsyncHerdClient)
+                    and m in no_herd_method
+                ):
+                    pytest.skip(f"herd client doesn't support {m}")
+                await method("abc")
+
+    async def test_methods_with_two_argument_omit_exception(
+        self, ignore_exceptions_cache: AsyncValkeyCache, subtests
+    ):
+        for m in methods_with_two_required_parameters:
+            method = getattr(ignore_exceptions_cache, m)
+            with subtests.test(method=method):
+                await method("abc", 1)
+
+    @pytest.mark.skipif(
+        not isinstance(default_cache.client, AsyncDefaultClient),
+        reason="not supported by none default clients",
     )
+    async def test_methods_with_three_argument_omit_exception(
+        self, ignore_exceptions_cache: AsyncValkeyCache, subtests
+    ):
+        for m in methods_with_three_required_parameters:
+            method = getattr(ignore_exceptions_cache, m)
+            with subtests.test(method=method):
+                await method("abc", "def", "ghi")
 
+    async def test_methods_taking_dictionary(
+        self, ignore_exceptions_cache: AsyncValkeyCache, subtests
+    ):
+        for m in methods_taking_dictionary:
+            method = getattr(ignore_exceptions_cache, m)
+            with subtests.test(method=method):
+                await method({"abc": "def"})
 
-@pytest.mark.asyncio(loop_scope="session")
-async def test_get_django_omit_exceptions_priority_1(settings: SettingsWrapper):
-    caches_setting = copy.deepcopy(settings.CACHES)
-    caches_setting["doesnotexist"]["OPTIONS"]["IGNORE_EXCEPTIONS"] = True
-    settings.CACHES = caches_setting
-    settings.DJANGO_VALKEY_IGNORE_EXCEPTIONS = False
-    cache = cast(AsyncValkeyCache, caches["doesnotexist"])
-    assert cache._ignore_exceptions is True
-    assert await cache.aget("key") is None
+    async def test_iterator_methods(
+        self, ignore_exceptions_cache: AsyncValkeyCache, subtests
+    ):
+        for m in iter_methods:
+            method = getattr(ignore_exceptions_cache, m)
+            with subtests.test(method=method):
+                async for i in method("abc"):
+                    assert i is None
 
+    async def test_get_django_omit_exceptions_many_returns_default_arg(
+        self,
+        ignore_exceptions_cache: AsyncValkeyCache,
+    ):
+        assert ignore_exceptions_cache._ignore_exceptions is True
+        assert await ignore_exceptions_cache.aget_many(["key1", "key2", "key3"]) == {}
 
-@pytest.mark.asyncio(loop_scope="session")
-async def test_get_django_omit_exceptions_priority_2(settings: SettingsWrapper):
-    caches_setting = copy.deepcopy(settings.CACHES)
-    caches_setting["doesnotexist"]["OPTIONS"]["IGNORE_EXCEPTIONS"] = False
-    settings.CACHES = caches_setting
-    settings.DJANGO_VALKEY_IGNORE_EXCEPTIONS = True
-    cache = cast(AsyncValkeyCache, caches["doesnotexist"])
-    assert cache._ignore_exceptions is False
-    with pytest.raises(ConnectionError):
-        await cache.aget("key")
+    async def test_get_django_omit_exceptions(
+        self, caplog: LogCaptureFixture, ignore_exceptions_cache: AsyncValkeyCache
+    ):
+        assert ignore_exceptions_cache._ignore_exceptions is True
+        assert ignore_exceptions_cache._log_ignored_exceptions is True
+
+        assert await ignore_exceptions_cache.aget("key") is None
+        assert await ignore_exceptions_cache.aget("key", "default") == "default"
+        assert await ignore_exceptions_cache.aget("key", default="default") == "default"
+
+        assert len(caplog.records) == 3
+        assert all(
+            record.levelname == "ERROR" and record.msg == "Exception ignored"
+            for record in caplog.records
+        )
+
+    async def test_get_django_omit_exceptions_priority_1(
+        self, settings: SettingsWrapper
+    ):
+        caches_setting = copy.deepcopy(settings.CACHES)
+        caches_setting["doesnotexist"]["OPTIONS"]["IGNORE_EXCEPTIONS"] = True
+        settings.CACHES = caches_setting
+        settings.DJANGO_VALKEY_IGNORE_EXCEPTIONS = False
+        cache = cast(AsyncValkeyCache, caches["doesnotexist"])
+        assert cache._ignore_exceptions is True
+        assert await cache.aget("key") is None
+
+    async def test_get_django_omit_exceptions_priority_2(
+        self, settings: SettingsWrapper
+    ):
+        caches_setting = copy.deepcopy(settings.CACHES)
+        caches_setting["doesnotexist"]["OPTIONS"]["IGNORE_EXCEPTIONS"] = False
+        settings.CACHES = caches_setting
+        settings.DJANGO_VALKEY_IGNORE_EXCEPTIONS = True
+        cache = cast(AsyncValkeyCache, caches["doesnotexist"])
+        assert cache._ignore_exceptions is False
+        with pytest.raises(ConnectionError):
+            await cache.aget("key")
+
+    async def test_error_raised_when_ignore_is_not_set(self, conf_cache):
+        cache = caches["doesnotexist"]
+        assert cache._ignore_exceptions is False
+        assert cache._log_ignored_exceptions is False
+        with pytest.raises(ConnectionError):
+            await cache.get("key")
 
 
 @pytest_asyncio.fixture
@@ -105,9 +241,6 @@ class TestDjangoValkeyCacheEscapePrefix:
     async def test_iter_keys(
         self, key_prefix_cache: AsyncValkeyCache, with_prefix_cache: AsyncValkeyCache
     ):
-        # if isinstance(key_prefix_cache.client, ShardClient):
-        #     pytest.skip("ShardClient doesn't support iter_keys")
-
         await key_prefix_cache.aset("a", "1")
         await with_prefix_cache.aset("b", "2")
         async with contextlib.aclosing(key_prefix_cache.aiter_keys("*")) as keys:
@@ -133,9 +266,6 @@ async def test_custom_key_function(cache: AsyncValkeyCache, settings: SettingsWr
         "REVERSE_KEY_FUNCTION"
     ] = "tests.test_cache_options.reverse_key"
     settings.CACHES = caches_setting
-
-    # if isinstance(cache.client, ShardClient):
-    #     pytest.skip("ShardClient doesn't support get_client")
 
     for key in ["foo-aa", "foo-ab", "foo-bb", "foo-bc"]:
         await cache.aset(key, "foo")

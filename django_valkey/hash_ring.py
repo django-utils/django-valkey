@@ -1,6 +1,7 @@
 import bisect
 import hashlib
-from typing import Dict, Iterable, Iterator, List, Tuple
+from collections.abc import Iterable, Iterator
+from typing import Dict, List, Tuple
 
 
 class HashRing:

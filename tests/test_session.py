@@ -3,16 +3,12 @@ import unittest
 from datetime import timedelta
 from typing import Optional, Type
 
-import django
-import pytest
 from django.conf import settings
 from django.contrib.sessions.backends.base import SessionBase
 from django.contrib.sessions.backends.cache import SessionStore as CacheSession
-from django.core.cache import DEFAULT_CACHE_ALIAS, caches
 from django.test import override_settings
 from django.utils import timezone
 
-from django_valkey.serializers.msgpack import MSGPackSerializer
 
 SessionType = Type[SessionBase]
 
@@ -304,27 +300,23 @@ class SessionTestsMixin:
         self.assertIn("corrupted", cm.output[0])
 
     def test_actual_expiry(self):
-        # this doesn't work with JSONSerializer (serializing timedelta)
-        with override_settings(
-            SESSION_SERIALIZER="django.contrib.sessions.serializers.PickleSerializer"
-        ):
-            self.session = self.backend()  # reinitialize after overriding settings
+        self.session = self.backend()  # reinitialize after overriding settings
 
-            # Regression test for #19200
-            old_session_key = None
-            new_session_key = None
-            try:
-                self.session["foo"] = "bar"
-                self.session.set_expiry(-timedelta(seconds=10))
-                self.session.save()
-                old_session_key = self.session.session_key
-                # With an expiry date in the past, the session expires instantly.
-                new_session = self.backend(self.session.session_key)
-                new_session_key = new_session.session_key
-                self.assertNotIn("foo", new_session)
-            finally:
-                self.session.delete(old_session_key)
-                self.session.delete(new_session_key)
+        # Regression test for #19200
+        old_session_key = None
+        new_session_key = None
+        try:
+            self.session["foo"] = "bar"
+            self.session.set_expiry(-timedelta(seconds=10))
+            self.session.save()
+            old_session_key = self.session.session_key
+            # With an expiry date in the past, the session expires instantly.
+            new_session = self.backend(self.session.session_key)
+            new_session_key = new_session.session_key
+            self.assertNotIn("foo", new_session)
+        finally:
+            self.session.delete(old_session_key)
+            self.session.delete(new_session_key)
 
     def test_session_load_does_not_create_record(self):
         """
@@ -366,14 +358,3 @@ class SessionTestsMixin:
 
 class SessionTests(SessionTestsMixin, unittest.TestCase):
     backend = CacheSession
-
-    @pytest.mark.skipif(
-        django.VERSION >= (4, 2),
-        reason="PickleSerializer is removed as of https://code.djangoproject.com/ticket/29708",
-    )
-    def test_actual_expiry(self):
-        if isinstance(
-            caches[DEFAULT_CACHE_ALIAS].client._serializer, MSGPackSerializer
-        ):
-            self.skipTest("msgpack serializer doesn't support datetime serialization")
-        super().test_actual_expiry()
