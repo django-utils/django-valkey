@@ -80,6 +80,9 @@ class TestDjangoValkeyOmitException:
     @pytest_asyncio.fixture
     async def conf_cache(self, settings: SettingsWrapper):
         caches_settings = copy.deepcopy(settings.CACHES)
+        # NOTE: this files raises RuntimeWarning because `conn.close` was not awaited,
+        # this is expected because django calls the signal manually during this test
+        # to debug, put a `raise` in django.utils.connection.BaseConnectionHandler.close_all
         settings.CACHES = caches_settings
         return caches_settings
 
