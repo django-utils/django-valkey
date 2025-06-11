@@ -6,7 +6,9 @@ from django_valkey import pool as sync_pool
 from django_valkey.async_cache import pool
 
 
-@pytest.mark.asyncio
+pytestmark = pytest.mark.anyio
+
+
 async def test_connection_factory_redefine_from_opts():
     cf = sync_pool.get_connection_factory(
         options={
@@ -30,7 +32,6 @@ async def test_connection_factory_redefine_from_opts():
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_connection_factory_opts(conn_factory: str, expected):
     cf = sync_pool.get_connection_factory(
         path=None,
@@ -55,7 +56,6 @@ async def test_connection_factory_opts(conn_factory: str, expected):
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_connection_factory_path(conn_factory: str, expected):
     cf = sync_pool.get_connection_factory(
         path=conn_factory,
@@ -66,7 +66,6 @@ async def test_connection_factory_path(conn_factory: str, expected):
     assert isinstance(cf, expected)
 
 
-@pytest.mark.asyncio
 async def test_connection_factory_no_sentinels():
     with pytest.raises(ImproperlyConfigured):
         sync_pool.get_connection_factory(

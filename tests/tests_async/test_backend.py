@@ -8,7 +8,6 @@ from typing import List, cast
 from unittest.mock import patch, AsyncMock
 
 import pytest
-import pytest_asyncio
 from pytest_django.fixtures import SettingsWrapper
 from pytest_mock import MockerFixture
 
@@ -22,7 +21,10 @@ from django_valkey.serializers.json import JSONSerializer
 from django_valkey.serializers.msgpack import MSGPackSerializer
 
 
-@pytest_asyncio.fixture(loop_scope="session")
+pytestmark = pytest.mark.anyio
+
+
+@pytest.fixture
 async def patch_itersize_setting() -> Iterable[None]:
     del caches["default"]
     with override_settings(DJANGO_VALKEY_SCAN_ITERSIZE=30):
@@ -31,7 +33,6 @@ async def patch_itersize_setting() -> Iterable[None]:
     del caches["default"]
 
 
-@pytest.mark.asyncio(loop_scope="session")
 class TestAsyncDjangoValkeyCache:
     async def test_set_int(self, cache: AsyncValkeyCache):
         if isinstance(cache.client, AsyncHerdClient):
