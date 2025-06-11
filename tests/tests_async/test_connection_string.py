@@ -2,6 +2,8 @@ import pytest
 
 from django_valkey import pool
 
+pytestmark = pytest.mark.anyio
+
 
 @pytest.mark.parametrize(
     "connection_string",
@@ -11,7 +13,6 @@ from django_valkey import pool
         "valkeys://localhost:3333?db=2",
     ],
 )
-@pytest.mark.asyncio
 async def test_connection_strings(connection_string: str):
     cf = pool.get_connection_factory(
         options={

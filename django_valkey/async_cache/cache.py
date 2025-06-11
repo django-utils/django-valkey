@@ -8,3 +8,4 @@ class AsyncValkeyCache(
     BaseValkeyCache[AsyncDefaultClient, AValkey], AsyncBackendCommands
 ):
     DEFAULT_CLIENT_CLASS = "django_valkey.async_cache.client.default.AsyncDefaultClient"
+    is_async = True

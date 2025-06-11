@@ -57,6 +57,7 @@ brotli = [
 
 [dependency-groups]
 dev = [
+    "anyio>=4.9.0",
     "black>=25.1.0",
     "coverage>=7.8.0",
     "django-cmd>=2.6",
@@ -66,7 +67,6 @@ dev = [
     "mypy>=1.15.0",
     "pre-commit>=4.2.0",
     "pytest>=8.3.5",
-    "pytest-asyncio>=0.26.0",
     "pytest-django>=4.11.1",
     "pytest-mock>=3.14.0",
     "pytest-subtests>=0.14.1",
@@ -104,8 +104,6 @@ ignore_missing_settings = true
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings.sqlite"
-asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "session"
 
 [tool.coverage.run]
 plugins = ["django_coverage_plugin"]

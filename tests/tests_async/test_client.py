@@ -2,7 +2,6 @@ from collections.abc import Iterable
 from unittest.mock import AsyncMock
 
 import pytest
-import pytest_asyncio
 from pytest_django.fixtures import SettingsWrapper
 from pytest_mock import MockerFixture
 
@@ -11,8 +10,10 @@ from django.core.cache import DEFAULT_CACHE_ALIAS
 from django_valkey.async_cache.cache import AsyncValkeyCache
 from django_valkey.async_cache.client import AsyncDefaultClient
 
+pytestmark = pytest.mark.anyio
 
-@pytest_asyncio.fixture
+
+@pytest.fixture
 async def cache_client(cache: AsyncValkeyCache) -> Iterable[AsyncDefaultClient]:
     client = cache.client
     await client.aset("TestClientClose", 0)
@@ -20,7 +21,6 @@ async def cache_client(cache: AsyncValkeyCache) -> Iterable[AsyncDefaultClient]:
     await client.adelete("TestClientClose")
 
 
-@pytest.mark.asyncio(loop_scope="session")
 class TestClientClose:
     async def test_close_client_disconnect_default(
         self, cache_client: AsyncDefaultClient, mocker: MockerFixture
